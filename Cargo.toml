@@ -1,0 +1,6 @@
+[package]
+name = "guzuta"
+version = "0.0.0"
+authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+
+[dependencies]
