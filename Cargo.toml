@@ -4,3 +4,11 @@ version = "0.0.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 
 [dependencies]
+clap = "2.19"
+env_logger = "0.3"
+flate2 = "0.2"
+log = "0.3"
+rust-crypto = "0.2"
+rust-lzma = "0.2"
+rustc-serialize = "0.3"
+tar = "0.4"
