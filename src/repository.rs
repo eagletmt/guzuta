@@ -143,6 +143,7 @@ impl Repository {
                 dir_header.set_entry_type(tar::EntryType::Directory);
                 dir_header.set_path(&pathbuf).unwrap();
                 dir_header.set_mode(0o755);
+                dir_header.set_size(0);
                 dir_header.set_cksum();
                 builder.append(&dir_header, std::io::empty()).unwrap();
             }
