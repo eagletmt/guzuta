@@ -104,7 +104,7 @@ impl Repository {
         let desc = Desc {
             groups: package.groups().to_owned(),
             license: package.license().to_owned(),
-            replaces: package.replaces(),
+            replaces: package.replaces().to_owned(),
             filename: package.filename().to_owned(),
             name: package.pkgname().to_owned(),
             base: package.pkgbase().to_owned(),

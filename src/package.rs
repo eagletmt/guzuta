@@ -66,8 +66,8 @@ impl Package {
     pub fn license(&self) -> &Vec<String> {
         &self.pkginfo.license
     }
-    pub fn replaces(&self) -> Vec<String> {
-        Vec::new()
+    pub fn replaces(&self) -> &Vec<String> {
+        &self.pkginfo.replaces
     }
     pub fn filename(&self) -> &str {
         &self.filename
@@ -151,6 +151,7 @@ pub struct PkgInfo {
     pub optdepends: Vec<String>,
     pub conflicts: Vec<String>,
     pub provides: Vec<String>,
+    pub replaces: Vec<String>,
 }
 
 impl PkgInfo {
@@ -199,6 +200,7 @@ fn parse_pkginfo(body: &str) -> PkgInfo {
                 "optdepend" => info.optdepends.push(val.to_owned()),
                 "conflict" => info.conflicts.push(val.to_owned()),
                 "provides" => info.provides.push(val.to_owned()),
+                "replaces" => info.replaces.push(val.to_owned()),
                 _ => panic!("Unknown PKGINFO entry '{}': {}", key, line),
             }
         } else {
