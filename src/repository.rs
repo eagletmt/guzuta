@@ -160,6 +160,7 @@ impl Repository {
         }
         let gz_writer = builder.into_inner().unwrap();
         gz_writer.finish().unwrap();
+        std::fs::rename(&tmp_path, &self.path).unwrap();
     }
 }
 
