@@ -129,6 +129,10 @@ impl Repository {
         self.entries.insert(desc.name.to_owned(), PackageEntry { desc: desc });
     }
 
+    pub fn remove(&mut self, package_name: &str) {
+        self.entries.remove(package_name);
+    }
+
     pub fn save(&self) {
         let tmp_path = format!("{}.progress", self.path);
         let file = std::fs::File::create(&tmp_path).unwrap();

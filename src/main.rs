@@ -18,6 +18,17 @@ fn main() {
                 .help("Path to package to be added"))
             .arg(clap::Arg::with_name("DB_PATH")
                 .required(true)
+                .help("Path to repository database")))
+        .subcommand(clap::SubCommand::with_name("repo-remove")
+            .about("Remove PACKAGE_NAME to DB_PATH")
+            .arg(clap::Arg::with_name("repo-key")
+                .long("repo-key")
+                .help("GPG key to sign repository database"))
+            .arg(clap::Arg::with_name("PACKAGE_NAME")
+                .required(true)
+                .help("Path to package to be removed"))
+            .arg(clap::Arg::with_name("DB_PATH")
+                .required(true)
                 .help("Path to repository database")));
     let matches = app.clone().get_matches();
 
@@ -28,6 +39,9 @@ fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches>)) {
     match subcommand {
         ("repo-add", Some(repo_add_command)) => {
             repo_add(repo_add_command);
+        }
+        ("repo-remove", Some(repo_remove_command)) => {
+            repo_remove(repo_remove_command);
         }
         _ => {
             panic!("Unknown subcommand");
@@ -43,5 +57,16 @@ fn repo_add(args: &clap::ArgMatches) {
 
     repository.load();
     repository.add(&package);
+    repository.save();
+}
+
+fn repo_remove(args: &clap::ArgMatches) {
+    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let package_name = args.value_of("PACKAGE_NAME").unwrap();
+    let mut repository = guzuta::Repository::new(args.value_of("DB_PATH").unwrap().to_owned(),
+                                                 signer);
+
+    repository.load();
+    repository.remove(&package_name);
     repository.save();
 }
