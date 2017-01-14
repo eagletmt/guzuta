@@ -37,6 +37,7 @@ pub struct Desc {
 #[derive(Clone)]
 pub struct PackageEntry {
     pub desc: Desc,
+    pub files: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -60,6 +61,7 @@ impl Repository {
         let gz_reader = flate2::read::GzDecoder::new(file).unwrap();
         let mut tar_reader = tar::Archive::new(gz_reader);
         let mut desc_entries = std::collections::HashMap::new();
+        let mut files_entries = std::collections::HashMap::new();
         for entry_result in tar_reader.entries().unwrap() {
             let mut entry = entry_result.unwrap();
             let pathbuf = entry.path().unwrap().into_owned();
@@ -78,7 +80,7 @@ impl Repository {
                                 // old format
                             }
                             "files" => {
-                                // TODO
+                                files_entries.insert(splitn[0].to_owned(), parse_files(&body));
                             }
                             _ => {
                                 panic!("Unknown pathname: {}", pathname);
@@ -96,7 +98,12 @@ impl Repository {
         }
 
         for (_, desc) in desc_entries.into_iter() {
-            self.entries.insert(desc.name.to_owned(), PackageEntry { desc: desc });
+            let files = files_entries.remove(&desc.name).unwrap_or(vec![]);
+            self.entries.insert(desc.name.to_owned(),
+                                PackageEntry {
+                                    desc: desc,
+                                    files: files,
+                                });
         }
     }
 
@@ -126,14 +133,18 @@ impl Repository {
             checkdepends: package.checkdepends().to_owned(),
             optdepends: package.optdepends().to_owned(),
         };
-        self.entries.insert(desc.name.to_owned(), PackageEntry { desc: desc });
+        self.entries.insert(desc.name.to_owned(),
+                            PackageEntry {
+                                desc: desc,
+                                files: package.files().to_owned(),
+                            });
     }
 
     pub fn remove(&mut self, package_name: &str) {
         self.entries.remove(package_name);
     }
 
-    pub fn save(&self) {
+    pub fn save(&self, include_files: bool) {
         let tmp_path = format!("{}.progress", self.path);
         let file = std::fs::File::create(&tmp_path).unwrap();
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
@@ -161,6 +172,17 @@ impl Repository {
                 desc_header.set_size(desc_bytes.len() as u64);
                 desc_header.set_cksum();
                 builder.append(&desc_header, desc_bytes).unwrap();
+            }
+            if include_files {
+                let mut files_header = tar::Header::new_gnu();
+                files_header.set_entry_type(tar::EntryType::Regular);
+                files_header.set_path(pathbuf.join("files")).unwrap();
+                files_header.set_mode(0o644);
+                let files_str = into_files_file(&package_entry.files);
+                let files_bytes = files_str.as_bytes();
+                files_header.set_size(files_bytes.len() as u64);
+                files_header.set_cksum();
+                builder.append(&files_header, files_bytes).unwrap();
             }
         }
         let gz_writer = builder.into_inner().unwrap();
@@ -340,4 +362,28 @@ fn desc_write_u64(buf: &mut String, key: &str, val: u64) {
         buf.push_str(&format!("{}", val));
         buf.push_str("\n\n");
     }
+}
+
+fn parse_files(body: &str) -> Vec<String> {
+    let mut iter = body.lines();
+
+    if let Some("%FILES%") = iter.next() {
+        let mut files = vec![];
+        for line in iter {
+            files.push(line.to_owned());
+        }
+        return files;
+    } else {
+        panic!("Empty files file");
+    }
+}
+
+fn into_files_file(files: &Vec<String>) -> String {
+    let mut buf = String::new();
+    buf.push_str("%FILES%\n");
+    for file in files {
+        buf.push_str(file);
+        buf.push_str("\n");
+    }
+    return buf;
 }

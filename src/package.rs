@@ -15,11 +15,12 @@ pub struct Package {
     pgpsig: String,
     md5sum: String,
     sha256sum: String,
+    files: Vec<String>,
 }
 
 impl Package {
     pub fn load<P: AsRef<std::path::Path>>(path: &P) -> Package {
-        let pkginfo = PkgInfo::load(path);
+        let (pkginfo, files) = PkgInfo::load(path);
         let filename = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
         let sig_path = path.as_ref().parent().unwrap().join(format!("{}.sig", filename));
         let pgpsig = if let Ok(mut f) = std::fs::File::open(sig_path) {
@@ -57,6 +58,7 @@ impl Package {
             pgpsig: pgpsig,
             md5sum: md5.result_str(),
             sha256sum: sha256.result_str(),
+            files: files,
         }
     }
 
@@ -130,6 +132,10 @@ impl Package {
     pub fn optdepends(&self) -> &Vec<String> {
         &self.pkginfo.optdepends
     }
+
+    pub fn files(&self) -> &Vec<String> {
+        &self.files
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -155,20 +161,29 @@ pub struct PkgInfo {
 }
 
 impl PkgInfo {
-    fn load<P: AsRef<std::path::Path>>(path: &P) -> Self {
+    fn load<P: AsRef<std::path::Path>>(path: &P) -> (Self, Vec<String>) {
         let file = std::fs::File::open(path).unwrap();
         let xz_reader = lzma::LzmaReader::new_decompressor(file).unwrap();
         let mut tar_reader = tar::Archive::new(xz_reader);
+        let mut pkginfo = None;
+        let mut files = vec![];
         for entry_result in tar_reader.entries().unwrap() {
             let mut entry = entry_result.unwrap();
-            if entry.path().unwrap() == std::path::Path::new(".PKGINFO") &&
-               entry.header().entry_type() == tar::EntryType::Regular {
+            let path = entry.path().unwrap().to_mut().to_string_lossy().into_owned();
+            if path == ".PKGINFO" && entry.header().entry_type() == tar::EntryType::Regular {
                 let mut body = String::new();
                 entry.read_to_string(&mut body).unwrap();
-                return parse_pkginfo(&body);
+                pkginfo = Some(parse_pkginfo(&body));
+            }
+            if !path.starts_with(".") {
+                files.push(path);
             }
         }
-        panic!(".PKGINFO not found");
+        if let Some(pkginfo) = pkginfo {
+            return (pkginfo, files);
+        } else {
+            panic!(".PKGINFO not found");
+        }
     }
 }
 
