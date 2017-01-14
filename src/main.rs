@@ -20,7 +20,7 @@ fn main() {
                 .required(true)
                 .help("Path to repository database")))
         .subcommand(clap::SubCommand::with_name("repo-remove")
-            .about("Remove PACKAGE_NAME to DB_PATH")
+            .about("Remove PACKAGE_NAME from DB_PATH")
             .arg(clap::Arg::with_name("repo-key")
                 .long("repo-key")
                 .help("GPG key to sign repository database"))
@@ -40,6 +40,17 @@ fn main() {
                 .help("Path to package to be added"))
             .arg(clap::Arg::with_name("FILES_PATH")
                 .required(true)
+                .help("Path to repository database")))
+        .subcommand(clap::SubCommand::with_name("files-remove")
+            .about("Remove PACKAGE_NAME from FILES_PATH")
+            .arg(clap::Arg::with_name("repo-key")
+                .long("repo-key")
+                .help("GPG key to sign repository database"))
+            .arg(clap::Arg::with_name("PACKAGE_NAME")
+                .required(true)
+                .help("Path to package to be removed"))
+            .arg(clap::Arg::with_name("DB_PATH")
+                .required(true)
                 .help("Path to repository database")));
     let matches = app.clone().get_matches();
 
@@ -56,6 +67,9 @@ fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches>)) {
         }
         ("files-add", Some(files_add_command)) => {
             files_add(files_add_command);
+        }
+        ("files-remove", Some(files_remove_command)) => {
+            files_remove(files_remove_command);
         }
         _ => {
             panic!("Unknown subcommand");
@@ -93,5 +107,16 @@ fn files_add(args: &clap::ArgMatches) {
 
     repository.load();
     repository.add(&package);
+    repository.save(true);
+}
+
+fn files_remove(args: &clap::ArgMatches) {
+    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let package_name = args.value_of("PACKAGE_NAME").unwrap();
+    let mut repository = guzuta::Repository::new(args.value_of("DB_PATH").unwrap().to_owned(),
+                                                 signer);
+
+    repository.load();
+    repository.remove(&package_name);
     repository.save(true);
 }
