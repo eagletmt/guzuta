@@ -1,5 +1,6 @@
 extern crate crypto;
 extern crate flate2;
+extern crate gpgme;
 extern crate lzma;
 extern crate rustc_serialize;
 extern crate tar;

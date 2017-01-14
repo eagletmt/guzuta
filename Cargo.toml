@@ -7,6 +7,7 @@ authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 clap = "2.19"
 env_logger = "0.3"
 flate2 = "0.2"
+gpgme = "0.4"
 log = "0.3"
 rust-crypto = "0.2"
 rust-lzma = "0.2"

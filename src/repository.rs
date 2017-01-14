@@ -187,6 +187,11 @@ impl Repository {
         }
         let gz_writer = builder.into_inner().unwrap();
         gz_writer.finish().unwrap();
+
+        if let Some(ref signer) = self.signer {
+            signer.sign(&tmp_path, &format!("{}.sig", self.path));
+        }
+
         std::fs::rename(&tmp_path, &self.path).unwrap();
     }
 }
