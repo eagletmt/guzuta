@@ -185,8 +185,8 @@ fn build(args: &clap::ArgMatches) {
                                               repo_signer.as_ref());
     let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path),
                                                  repo_signer.as_ref());
-    db_repo.load();
-    files_repo.load();
+    db_repo.load().unwrap();
+    files_repo.load().unwrap();
     let mut abs_path = repo_dir.join(repo_name).into_os_string();
     abs_path.push(".abs.tar.gz");
     let abs = guzuta::Abs::new(repo_name, abs_path);
@@ -200,8 +200,8 @@ fn build(args: &clap::ArgMatches) {
     }
 
     abs.add(package_dir, srcdest).unwrap();
-    db_repo.save(false);
-    files_repo.save(true);
+    db_repo.save(false).unwrap();
+    files_repo.save(true).unwrap();
 }
 
 fn repo_add(args: &clap::ArgMatches) {
@@ -211,9 +211,9 @@ fn repo_add(args: &clap::ArgMatches) {
                                                      .unwrap()),
                                                  signer.as_ref());
 
-    repository.load();
+    repository.load().unwrap();
     repository.add(&package);
-    repository.save(false);
+    repository.save(false).unwrap();
 }
 
 fn repo_remove(args: &clap::ArgMatches) {
@@ -223,9 +223,9 @@ fn repo_remove(args: &clap::ArgMatches) {
                                                      .unwrap()),
                                                  signer.as_ref());
 
-    repository.load();
+    repository.load().unwrap();
     repository.remove(&package_name);
-    repository.save(false);
+    repository.save(false).unwrap();
 }
 
 fn files_add(args: &clap::ArgMatches) {
@@ -235,9 +235,9 @@ fn files_add(args: &clap::ArgMatches) {
         guzuta::Repository::new(std::path::PathBuf::from(args.value_of("FILES_PATH").unwrap()),
                                 signer.as_ref());
 
-    repository.load();
+    repository.load().unwrap();
     repository.add(&package);
-    repository.save(true);
+    repository.save(true).unwrap();
 }
 
 fn files_remove(args: &clap::ArgMatches) {
@@ -247,9 +247,9 @@ fn files_remove(args: &clap::ArgMatches) {
         guzuta::Repository::new(std::path::PathBuf::from(args.value_of("FILES_PATH").unwrap()),
                                 signer.as_ref());
 
-    repository.load();
+    repository.load().unwrap();
     repository.remove(&package_name);
-    repository.save(true);
+    repository.save(true).unwrap();
 }
 
 fn abs_add(args: &clap::ArgMatches) {
