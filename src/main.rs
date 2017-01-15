@@ -114,6 +114,19 @@ fn main() {
                 .help("Path to the directory containing PKGBUILD"))
             .arg(clap::Arg::with_name("ABS_PATH")
                 .required(true)
+                .help("Path to abs tarball")))
+        .subcommand(clap::SubCommand::with_name("abs-remove")
+            .about("Remove source package from abs tarball")
+            .arg(clap::Arg::with_name("repo-name")
+                .long("repo-name")
+                .takes_value(true)
+                .required(true)
+                .help("Repository name"))
+            .arg(clap::Arg::with_name("PACKAGE_NAME")
+                .required(true)
+                .help("Package name to be removed"))
+            .arg(clap::Arg::with_name("ABS_PATH")
+                .required(true)
                 .help("Path to abs tarball")));
     let matches = app.get_matches();
 
@@ -137,6 +150,9 @@ fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches>)) {
         }
         ("abs-add", Some(abs_add_command)) => {
             abs_add(abs_add_command);
+        }
+        ("abs-remove", Some(abs_remove_command)) => {
+            abs_remove(abs_remove_command);
         }
         _ => {
             panic!("Unknown subcommand");
@@ -239,4 +255,13 @@ fn abs_add(args: &clap::ArgMatches) {
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
     abs.add(package_dir, srcdest);
+}
+
+fn abs_remove(args: &clap::ArgMatches) {
+    let repo_name = args.value_of("repo-name").unwrap();
+    let package_name = args.value_of("PACKAGE_NAME").unwrap();
+    let abs_path = args.value_of("ABS_PATH").unwrap();
+
+    let abs = guzuta::Abs::new(repo_name, abs_path);
+    abs.remove(package_name);
 }

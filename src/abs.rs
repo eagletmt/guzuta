@@ -21,7 +21,18 @@ impl<'a> Abs<'a> {
                                                                      srcdest: Q) {
         let root = tempdir::TempDir::new("guzuta-abs-root").unwrap();
         self.unarchive(root.as_ref(), self.abs_path.as_path());
-        self.add_srcpkg(root.as_ref(), package_dir.as_ref(), srcdest);
+        self.add_srcpkg(root.as_ref(), package_dir, srcdest);
+        self.archive(root, self.abs_path.as_path());
+    }
+
+    pub fn remove(&self, package_name: &str) {
+        let root = tempdir::TempDir::new("guzuta-abs-root").unwrap();
+        self.unarchive(root.as_ref(), self.abs_path.as_path());
+        if let Err(e) = std::fs::remove_dir_all(root.path()
+            .join(self.repo_name)
+            .join(package_name)) {
+            panic!("Unable to remove package {}: {:?}", package_name, e);
+        }
         self.archive(root, self.abs_path.as_path());
     }
 
