@@ -42,13 +42,13 @@ pub struct PackageEntry {
 
 #[derive(Clone)]
 pub struct Repository {
-    path: String,
+    path: std::path::PathBuf,
     signer: Option<super::signer::Signer>,
     entries: std::collections::HashMap<String, PackageEntry>,
 }
 
 impl Repository {
-    pub fn new(path: String, signer: Option<super::signer::Signer>) -> Repository {
+    pub fn new(path: std::path::PathBuf, signer: Option<super::signer::Signer>) -> Repository {
         return Repository {
             path: path,
             signer: signer,
@@ -145,7 +145,8 @@ impl Repository {
     }
 
     pub fn save(&self, include_files: bool) {
-        let tmp_path = format!("{}.progress", self.path);
+        let mut tmp_path = self.path.clone().into_os_string();
+        tmp_path.push(".progress");
         let file = std::fs::File::create(&tmp_path).unwrap();
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
         let mut builder = tar::Builder::new(gz_writer);
@@ -189,7 +190,9 @@ impl Repository {
         gz_writer.finish().unwrap();
 
         if let Some(ref signer) = self.signer {
-            signer.sign(&tmp_path, &format!("{}.sig", self.path));
+            let mut sig_path = self.path.clone().into_os_string();
+            sig_path.push(".sig");
+            signer.sign(&tmp_path, sig_path);
         }
 
         std::fs::rename(&tmp_path, &self.path).unwrap();
