@@ -73,14 +73,14 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn build_package(&self, package_dir: &str, repo_dir: &str, chroot_helper: &ChrootHelper) {
+    pub fn build_package<P: AsRef<std::path::Path>>(&self, package_dir: &str, repo_dir: P, chroot_helper: &ChrootHelper) -> Vec<std::path::PathBuf> {
         let tempdir = tempdir::TempDir::new("guzuta-pkgdest")
             .expect("Unable to create temporary directory");
         chroot_helper.makechrootpkg(package_dir, self.srcdest, &tempdir, self.logdest);
-        let repo_dir = std::path::Path::new(repo_dir);
+        let mut paths = vec![];
         for entry in std::fs::read_dir(&tempdir).expect("read_dir failed") {
             let entry = entry.unwrap();
-            let dest = repo_dir.join(entry.file_name());
+            let dest = repo_dir.as_ref().join(entry.file_name());
             if dest.read_link().is_ok() {
                 // Unlink symlink created by makechrootpkg
                 std::fs::remove_file(&dest).expect("Unable to unlink symlinked package");
@@ -91,6 +91,8 @@ impl<'a> Builder<'a> {
                 sig_dest.push(".sig");
                 signer.sign(&dest, sig_dest);
             }
+            paths.push(dest);
         }
+        return paths;
     }
 }

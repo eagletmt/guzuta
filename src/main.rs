@@ -33,11 +33,20 @@ fn main() {
                 .takes_value(true)
                 .required(true)
                 .help("Path to the repository directory"))
+            .arg(clap::Arg::with_name("repo-key")
+                .long("repo-key")
+                .takes_value(true)
+                .help("GPG key to sign repository database"))
             .arg(clap::Arg::with_name("arch")
                 .long("arch")
                 .takes_value(true)
                 .required(true)
                 .help("Architecture"))
+            .arg(clap::Arg::with_name("repo-name")
+                .long("repo-name")
+                .takes_value(true)
+                .required(true)
+                .help("Repository name"))
             .arg(clap::Arg::with_name("package-dir")
                 .required(true)
                 .help("Path to the directory containing PKGBUILD")))
@@ -122,12 +131,33 @@ fn build(args: &clap::ArgMatches) {
         arch => panic!("Unknown architecture: {}", arch),
     };
     let chroot = guzuta::ChrootHelper::new(args.value_of("chroot-dir").unwrap(), arch);
-    let signer = args.value_of("package-key").map(|key| guzuta::Signer::new(key.to_owned()));
-    let builder = guzuta::Builder::new(signer,
+    let package_signer = args.value_of("package-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let builder = guzuta::Builder::new(package_signer,
                                        args.value_of("srcdest").unwrap_or("."),
                                        args.value_of("logdest").unwrap_or("."));
-    let repo_dir = args.value_of("repo-dir").unwrap();
-    builder.build_package(args.value_of("package-dir").unwrap(), repo_dir, &chroot);
+    let repo_dir = std::path::Path::new(args.value_of("repo-dir").unwrap());
+    let repo_name = args.value_of("repo-name").unwrap();
+
+    let repo_signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let mut db_path = repo_dir.join(repo_name).into_os_string();
+    db_path.push(".db");
+    let mut files_path = repo_dir.join(repo_name).into_os_string();
+    files_path.push(".files");
+    let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path), repo_signer.clone());
+    let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path), repo_signer);
+    db_repo.load();
+    files_repo.load();
+
+    let package_paths = builder.build_package(args.value_of("package-dir").unwrap(), &repo_dir, &chroot);
+
+    for path in package_paths {
+        let package = guzuta::Package::load(&path);
+        db_repo.add(&package);
+        files_repo.add(&package);
+    }
+
+    db_repo.save(false);
+    files_repo.save(true);
 }
 
 fn repo_add(args: &clap::ArgMatches) {
