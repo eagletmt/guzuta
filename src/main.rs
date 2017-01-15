@@ -194,7 +194,7 @@ fn build(args: &clap::ArgMatches) {
     let package_paths = builder.build_package(package_dir, repo_dir, &chroot).unwrap();
 
     for path in package_paths {
-        let package = guzuta::Package::load(&path);
+        let package = guzuta::Package::load(&path).unwrap();
         db_repo.add(&package);
         files_repo.add(&package);
     }
@@ -206,7 +206,7 @@ fn build(args: &clap::ArgMatches) {
 
 fn repo_add(args: &clap::ArgMatches) {
     let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
-    let package = guzuta::Package::load(&args.value_of("PACKAGE_PATH").unwrap());
+    let package = guzuta::Package::load(&args.value_of("PACKAGE_PATH").unwrap()).unwrap();
     let mut repository = guzuta::Repository::new(std::path::PathBuf::from(args.value_of("DB_PATH")
                                                      .unwrap()),
                                                  signer.as_ref());
@@ -230,7 +230,7 @@ fn repo_remove(args: &clap::ArgMatches) {
 
 fn files_add(args: &clap::ArgMatches) {
     let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
-    let package = guzuta::Package::load(&args.value_of("PACKAGE_PATH").unwrap());
+    let package = guzuta::Package::load(&args.value_of("PACKAGE_PATH").unwrap()).unwrap();
     let mut repository =
         guzuta::Repository::new(std::path::PathBuf::from(args.value_of("FILES_PATH").unwrap()),
                                 signer.as_ref());

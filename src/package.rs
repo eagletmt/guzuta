@@ -7,6 +7,44 @@ extern crate tar;
 use crypto::digest::Digest;
 use std::io::Read;
 
+#[derive(Debug)]
+pub enum Error {
+    Io(std::io::Error),
+    Lzma(lzma::LzmaError),
+    ParseInt(std::num::ParseIntError),
+    Custom(std::borrow::Cow<'static, str>),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::Io(e)
+    }
+}
+
+impl From<lzma::LzmaError> for Error {
+    fn from(e: lzma::LzmaError) -> Self {
+        Error::Lzma(e)
+    }
+}
+
+impl From<std::num::ParseIntError> for Error {
+    fn from(e: std::num::ParseIntError) -> Self {
+        Error::ParseInt(e)
+    }
+}
+
+impl From<&'static str> for Error {
+    fn from(e: &'static str) -> Self {
+        Error::Custom(std::borrow::Cow::from(e))
+    }
+}
+
+impl From<String> for Error {
+    fn from(e: String) -> Self {
+        Error::Custom(std::borrow::Cow::from(e))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Package {
     pkginfo: PkgInfo,
@@ -19,22 +57,22 @@ pub struct Package {
 }
 
 impl Package {
-    pub fn load<P: AsRef<std::path::Path>>(path: &P) -> Package {
-        let (pkginfo, files) = PkgInfo::load(path);
+    pub fn load<P: AsRef<std::path::Path>>(path: &P) -> Result<Package, Error> {
+        let (pkginfo, files) = try!(PkgInfo::load(path));
         let filename = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
         let sig_path = path.as_ref().parent().unwrap().join(format!("{}.sig", filename));
         let pgpsig = if let Ok(mut f) = std::fs::File::open(sig_path) {
             use rustc_serialize::base64::ToBase64;
 
             let mut buf = vec![];
-            f.read_to_end(&mut buf).unwrap();
+            try!(f.read_to_end(&mut buf));
             buf.to_base64(rustc_serialize::base64::STANDARD)
         } else {
             "".to_owned()
         };
         let mut md5 = crypto::md5::Md5::new();
         let mut sha256 = crypto::sha2::Sha256::new();
-        let mut f = std::fs::File::open(path).unwrap();
+        let mut f = try!(std::fs::File::open(path));
         loop {
             let mut buf = [0; 1024];
             match f.read(&mut buf) {
@@ -46,20 +84,20 @@ impl Package {
                     sha256.input(&buf[..len]);
                 }
                 Err(e) => {
-                    panic!("{:?}", e);
+                    return Err(Error::from(e));
                 }
             }
         }
 
-        Package {
+        Ok(Package {
             pkginfo: pkginfo,
-            size: std::fs::metadata(path).unwrap().len(),
+            size: try!(std::fs::metadata(path)).len(),
             filename: filename,
             pgpsig: pgpsig,
             md5sum: md5.result_str(),
             sha256sum: sha256.result_str(),
             files: files,
-        }
+        })
     }
 
     pub fn groups(&self) -> &Vec<String> {
@@ -161,33 +199,33 @@ pub struct PkgInfo {
 }
 
 impl PkgInfo {
-    fn load<P: AsRef<std::path::Path>>(path: &P) -> (Self, Vec<String>) {
-        let file = std::fs::File::open(path).unwrap();
-        let xz_reader = lzma::LzmaReader::new_decompressor(file).unwrap();
+    fn load<P: AsRef<std::path::Path>>(path: &P) -> Result<(Self, Vec<String>), Error> {
+        let file = try!(std::fs::File::open(path));
+        let xz_reader = try!(lzma::LzmaReader::new_decompressor(file));
         let mut tar_reader = tar::Archive::new(xz_reader);
         let mut pkginfo = None;
         let mut files = vec![];
-        for entry_result in tar_reader.entries().unwrap() {
-            let mut entry = entry_result.unwrap();
-            let path = entry.path().unwrap().to_mut().to_string_lossy().into_owned();
+        for entry_result in try!(tar_reader.entries()) {
+            let mut entry = try!(entry_result);
+            let path = try!(entry.path()).to_mut().to_string_lossy().into_owned();
             if path == ".PKGINFO" && entry.header().entry_type() == tar::EntryType::Regular {
                 let mut body = String::new();
-                entry.read_to_string(&mut body).unwrap();
-                pkginfo = Some(parse_pkginfo(&body));
+                try!(entry.read_to_string(&mut body));
+                pkginfo = Some(try!(parse_pkginfo(&body)));
             }
             if !path.starts_with(".") {
                 files.push(path);
             }
         }
         if let Some(pkginfo) = pkginfo {
-            return (pkginfo, files);
+            Ok((pkginfo, files))
         } else {
-            panic!(".PKGINFO not found");
+            Err(Error::from(".PKGINFO not found"))
         }
     }
 }
 
-fn parse_pkginfo(body: &str) -> PkgInfo {
+fn parse_pkginfo(body: &str) -> Result<PkgInfo, Error> {
     let mut info = PkgInfo::default();
     for line in body.lines() {
         if line.starts_with('#') {
@@ -203,9 +241,9 @@ fn parse_pkginfo(body: &str) -> PkgInfo {
                 "pkgver" => info.pkgver = val.to_owned(),
                 "pkgdesc" => info.pkgdesc = val.to_owned(),
                 "url" => info.url = val.to_owned(),
-                "builddate" => info.builddate = val.parse().unwrap(),
+                "builddate" => info.builddate = try!(val.parse()),
                 "packager" => info.packager = val.to_owned(),
-                "size" => info.size = val.parse().unwrap(),
+                "size" => info.size = try!(val.parse()),
                 "arch" => info.arch = val.to_owned(),
                 "license" => info.license.push(val.to_owned()),
                 "group" => info.groups.push(val.to_owned()),
@@ -216,11 +254,11 @@ fn parse_pkginfo(body: &str) -> PkgInfo {
                 "conflict" => info.conflicts.push(val.to_owned()),
                 "provides" => info.provides.push(val.to_owned()),
                 "replaces" => info.replaces.push(val.to_owned()),
-                _ => panic!("Unknown PKGINFO entry '{}': {}", key, line),
+                _ => return Err(Error::from(format!("Unknown PKGINFO entry '{}': {}", key, line))),
             }
         } else {
-            panic!("Invalid line: {}", line);
+            return Err(Error::from(format!("Invalid line: {}", line)));
         }
     }
-    return info;
+    Ok(info)
 }
