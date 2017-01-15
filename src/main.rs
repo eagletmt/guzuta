@@ -8,6 +8,7 @@ fn main() {
     let app = clap::App::new("guzuta")
         .version("0.0.0")
         .about("Custom repository manager for ArchLinux pacman")
+        .setting(clap::AppSettings::SubcommandRequired)
         .subcommand(clap::SubCommand::with_name("repo-add")
             .about("Add PACKAGE_PATH to DB_PATH")
             .arg(clap::Arg::with_name("repo-key")
