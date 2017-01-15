@@ -168,11 +168,13 @@ fn build(args: &clap::ArgMatches) {
     };
     let chroot = guzuta::ChrootHelper::new(args.value_of("chroot-dir").unwrap(), arch);
     let package_signer = args.value_of("package-key").map(|key| guzuta::Signer::new(key));
+    let srcdest = args.value_of("srcdest").unwrap_or(".");
     let builder = guzuta::Builder::new(package_signer.as_ref(),
-                                       args.value_of("srcdest").unwrap_or("."),
+                                       srcdest,
                                        args.value_of("logdest").unwrap_or("."));
     let repo_dir = std::path::Path::new(args.value_of("repo-dir").unwrap());
     let repo_name = args.value_of("repo-name").unwrap();
+    let package_dir = args.value_of("PACKAGE_DIR").unwrap();
 
     let repo_signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
     let mut db_path = repo_dir.join(repo_name).into_os_string();
@@ -185,9 +187,11 @@ fn build(args: &clap::ArgMatches) {
                                                  repo_signer.as_ref());
     db_repo.load();
     files_repo.load();
+    let mut abs_path = repo_dir.join(repo_name).into_os_string();
+    abs_path.push(".abs.tar.gz");
+    let abs = guzuta::Abs::new(repo_name, abs_path);
 
-    let package_paths =
-        builder.build_package(args.value_of("PACKAGE_DIR").unwrap(), &repo_dir, &chroot);
+    let package_paths = builder.build_package(package_dir, repo_dir, &chroot);
 
     for path in package_paths {
         let package = guzuta::Package::load(&path);
@@ -195,6 +199,7 @@ fn build(args: &clap::ArgMatches) {
         files_repo.add(&package);
     }
 
+    abs.add(package_dir, srcdest);
     db_repo.save(false);
     files_repo.save(true);
 }
