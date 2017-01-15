@@ -8,11 +8,13 @@ extern crate tempdir;
 #[macro_use]
 extern crate log;
 
+mod abs;
 mod builder;
 mod package;
 mod repository;
 mod signer;
 
+pub use abs::Abs;
 pub use builder::Arch;
 pub use builder::Builder;
 pub use builder::ChrootHelper;
