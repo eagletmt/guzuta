@@ -204,7 +204,7 @@ impl<'a> Repository<'a> {
         if let Some(ref signer) = self.signer {
             let mut sig_path = self.path.clone().into_os_string();
             sig_path.push(".sig");
-            signer.sign(&tmp_path, sig_path);
+            signer.sign(&tmp_path, sig_path).unwrap();
         }
 
         std::fs::rename(&tmp_path, &self.path).unwrap();

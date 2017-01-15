@@ -96,7 +96,7 @@ impl<'a> Builder<'a> {
             if let Some(ref signer) = self.signer {
                 let mut sig_dest = dest.clone().into_os_string();
                 sig_dest.push(".sig");
-                signer.sign(&dest, sig_dest);
+                signer.sign(&dest, sig_dest).unwrap();
             }
             paths.push(dest);
         }

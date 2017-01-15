@@ -1,7 +1,25 @@
 extern crate gpgme;
 extern crate std;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug)]
+pub enum Error {
+    Gpgme(gpgme::Error),
+    Io(std::io::Error),
+}
+
+impl From<gpgme::Error> for Error {
+    fn from(e: gpgme::Error) -> Self {
+        Error::Gpgme(e)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::Io(e)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Signer<'a> {
     key: &'a str,
 }
@@ -13,15 +31,21 @@ impl<'a> Signer<'a> {
 
     pub fn sign<P: AsRef<std::path::Path>, Q: AsRef<std::path::Path>>(&self,
                                                                       path: P,
-                                                                      sig_path: Q) {
-        let mut ctx = gpgme::create_context().unwrap();
-        ctx.set_protocol(gpgme::PROTOCOL_OPENPGP).unwrap();
+                                                                      sig_path: Q)
+                                                                      -> Result<(), Error> {
+        let mut ctx = try!(gpgme::create_context());
+        try!(ctx.set_protocol(gpgme::PROTOCOL_OPENPGP));
         ctx.set_armor(true);
-        let key = ctx.find_secret_key(self.key.to_owned()).unwrap();
-        ctx.add_signer(&key).unwrap();
-        let mut input = gpgme::Data::load(&path).unwrap();
-        let writer = std::fs::File::create(sig_path).unwrap();
-        let mut output = gpgme::Data::from_writer(writer).unwrap();
-        ctx.sign(gpgme::ops::SIGN_MODE_DETACH, &mut input, &mut output).unwrap();
+        let key = try!(ctx.find_secret_key(self.key.to_owned()));
+        try!(ctx.add_signer(&key));
+        let mut input = try!(gpgme::Data::load(path.as_ref()));
+        let writer = try!(std::fs::File::create(sig_path));
+        match gpgme::Data::from_writer(writer) {
+            Ok(mut output) => {
+                try!(ctx.sign(gpgme::ops::SIGN_MODE_DETACH, &mut input, &mut output));
+                Ok(())
+            }
+            Err(wrapped_error) => Err(Error::from(wrapped_error.error())),
+        }
     }
 }
