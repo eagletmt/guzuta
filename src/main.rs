@@ -199,7 +199,7 @@ fn build(args: &clap::ArgMatches) {
         files_repo.add(&package);
     }
 
-    abs.add(package_dir, srcdest);
+    abs.add(package_dir, srcdest).unwrap();
     db_repo.save(false);
     files_repo.save(true);
 }
@@ -259,7 +259,7 @@ fn abs_add(args: &clap::ArgMatches) {
     let abs_path = args.value_of("ABS_PATH").unwrap();
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
-    abs.add(package_dir, srcdest);
+    abs.add(package_dir, srcdest).unwrap();
 }
 
 fn abs_remove(args: &clap::ArgMatches) {
@@ -268,5 +268,5 @@ fn abs_remove(args: &clap::ArgMatches) {
     let abs_path = args.value_of("ABS_PATH").unwrap();
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
-    abs.remove(package_name);
+    abs.remove(package_name).unwrap();
 }
