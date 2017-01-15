@@ -60,60 +60,62 @@ impl<'a> Repository<'a> {
 
     pub fn load(&mut self) {
         match std::fs::File::open(&self.path) {
-            Ok(file) => {
-                let gz_reader = flate2::read::GzDecoder::new(file).unwrap();
-                let mut tar_reader = tar::Archive::new(gz_reader);
-                let mut desc_entries = std::collections::HashMap::new();
-                let mut files_entries = std::collections::HashMap::new();
-                for entry_result in tar_reader.entries().unwrap() {
-                    let mut entry = entry_result.unwrap();
-                    let pathbuf = entry.path().unwrap().into_owned();
-                    let pathname = pathbuf.to_str().unwrap();
-                    match entry.header().entry_type() {
-                        tar::EntryType::Regular => {
-                            let splitn: Vec<&str> = pathname.splitn(2, '/').collect();
-                            if splitn.len() == 2 {
-                                let mut body = String::new();
-                                entry.read_to_string(&mut body).unwrap();
-                                match splitn[1] {
-                                    "desc" => {
-                                        desc_entries.insert(splitn[0].to_owned(), parse_desc(&body));
-                                    }
-                                    "depends" => {
-                                        // old format
-                                    }
-                                    "files" => {
-                                        files_entries.insert(splitn[0].to_owned(), parse_files(&body));
-                                    }
-                                    _ => {
-                                        panic!("Unknown pathname: {}", pathname);
-                                    }
-                                }
-                            } else {
-                                panic!("Invalid pathname entry: {}", pathname);
-                            }
-                        }
-                        tar::EntryType::Directory => {}
-                        _ => {
-                            panic!("Unknown file type: {}", pathname);
-                        }
-                    }
-                }
-
-                for (_, desc) in desc_entries.into_iter() {
-                    let files = files_entries.remove(&desc.name).unwrap_or(vec![]);
-                    self.entries.insert(desc.name.to_owned(),
-                                        PackageEntry {
-                                            desc: desc,
-                                            files: files,
-                                        });
-                }
-            }
+            Ok(file) => self.load_from_file(file),
             Err(e) => {
                 if e.kind() != std::io::ErrorKind::NotFound {
                     panic!("{:?}", e);
                 }
             }
+        }
+    }
+
+    fn load_from_file(&mut self, file: std::fs::File) {
+        let gz_reader = flate2::read::GzDecoder::new(file).unwrap();
+        let mut tar_reader = tar::Archive::new(gz_reader);
+        let mut desc_entries = std::collections::HashMap::new();
+        let mut files_entries = std::collections::HashMap::new();
+        for entry_result in tar_reader.entries().unwrap() {
+            let mut entry = entry_result.unwrap();
+            let pathbuf = entry.path().unwrap().into_owned();
+            let pathname = pathbuf.to_str().unwrap();
+            match entry.header().entry_type() {
+                tar::EntryType::Regular => {
+                    let splitn: Vec<&str> = pathname.splitn(2, '/').collect();
+                    if splitn.len() == 2 {
+                        let mut body = String::new();
+                        entry.read_to_string(&mut body).unwrap();
+                        match splitn[1] {
+                            "desc" => {
+                                desc_entries.insert(splitn[0].to_owned(), parse_desc(&body));
+                            }
+                            "depends" => {
+                                // old format
+                            }
+                            "files" => {
+                                files_entries.insert(splitn[0].to_owned(), parse_files(&body));
+                            }
+                            _ => {
+                                panic!("Unknown pathname: {}", pathname);
+                            }
+                        }
+                    } else {
+                        panic!("Invalid pathname entry: {}", pathname);
+                    }
+                }
+                tar::EntryType::Directory => {}
+                _ => {
+                    panic!("Unknown file type: {}", pathname);
+                }
+            }
+        }
+
+        for (_, desc) in desc_entries.into_iter() {
+            let files = files_entries.remove(&desc.name).unwrap_or(vec![]);
+            self.entries.insert(desc.name.to_owned(),
+                                PackageEntry {
+                                    desc: desc,
+                                    files: files,
+                                });
         }
     }
 
