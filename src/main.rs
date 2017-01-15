@@ -191,7 +191,7 @@ fn build(args: &clap::ArgMatches) {
     abs_path.push(".abs.tar.gz");
     let abs = guzuta::Abs::new(repo_name, abs_path);
 
-    let package_paths = builder.build_package(package_dir, repo_dir, &chroot);
+    let package_paths = builder.build_package(package_dir, repo_dir, &chroot).unwrap();
 
     for path in package_paths {
         let package = guzuta::Package::load(&path);
