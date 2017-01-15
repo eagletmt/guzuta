@@ -59,13 +59,16 @@ impl<'a> ChrootHelper<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Builder<'a> {
-    signer: Option<super::signer::Signer>,
+    signer: Option<&'a super::signer::Signer<'a>>,
     srcdest: &'a str,
     logdest: &'a str,
 }
 
 impl<'a> Builder<'a> {
-    pub fn new(signer: Option<super::signer::Signer>, srcdest: &'a str, logdest: &'a str) -> Self {
+    pub fn new(signer: Option<&'a super::signer::Signer<'a>>,
+               srcdest: &'a str,
+               logdest: &'a str)
+               -> Self {
         Builder {
             signer: signer,
             srcdest: srcdest,
@@ -73,7 +76,11 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn build_package<P: AsRef<std::path::Path>>(&self, package_dir: &str, repo_dir: P, chroot_helper: &ChrootHelper) -> Vec<std::path::PathBuf> {
+    pub fn build_package<P: AsRef<std::path::Path>>(&self,
+                                                    package_dir: &str,
+                                                    repo_dir: P,
+                                                    chroot_helper: &ChrootHelper)
+                                                    -> Vec<std::path::PathBuf> {
         let tempdir = tempdir::TempDir::new("guzuta-pkgdest")
             .expect("Unable to create temporary directory");
         chroot_helper.makechrootpkg(package_dir, self.srcdest, &tempdir, self.logdest);

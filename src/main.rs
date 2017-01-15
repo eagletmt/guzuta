@@ -131,24 +131,27 @@ fn build(args: &clap::ArgMatches) {
         arch => panic!("Unknown architecture: {}", arch),
     };
     let chroot = guzuta::ChrootHelper::new(args.value_of("chroot-dir").unwrap(), arch);
-    let package_signer = args.value_of("package-key").map(|key| guzuta::Signer::new(key.to_owned()));
-    let builder = guzuta::Builder::new(package_signer,
+    let package_signer = args.value_of("package-key").map(|key| guzuta::Signer::new(key));
+    let builder = guzuta::Builder::new(package_signer.as_ref(),
                                        args.value_of("srcdest").unwrap_or("."),
                                        args.value_of("logdest").unwrap_or("."));
     let repo_dir = std::path::Path::new(args.value_of("repo-dir").unwrap());
     let repo_name = args.value_of("repo-name").unwrap();
 
-    let repo_signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let repo_signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
     let mut db_path = repo_dir.join(repo_name).into_os_string();
     db_path.push(".db");
     let mut files_path = repo_dir.join(repo_name).into_os_string();
     files_path.push(".files");
-    let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path), repo_signer.clone());
-    let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path), repo_signer);
+    let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path),
+                                              repo_signer.as_ref());
+    let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path),
+                                                 repo_signer.as_ref());
     db_repo.load();
     files_repo.load();
 
-    let package_paths = builder.build_package(args.value_of("package-dir").unwrap(), &repo_dir, &chroot);
+    let package_paths =
+        builder.build_package(args.value_of("package-dir").unwrap(), &repo_dir, &chroot);
 
     for path in package_paths {
         let package = guzuta::Package::load(&path);
@@ -161,10 +164,11 @@ fn build(args: &clap::ArgMatches) {
 }
 
 fn repo_add(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
     let package = guzuta::Package::load(&args.value_of("PACKAGE_PATH").unwrap());
-    let mut repository = guzuta::Repository::new(std::path::PathBuf::from(args.value_of("DB_PATH").unwrap()),
-                                                 signer);
+    let mut repository = guzuta::Repository::new(std::path::PathBuf::from(args.value_of("DB_PATH")
+                                                     .unwrap()),
+                                                 signer.as_ref());
 
     repository.load();
     repository.add(&package);
@@ -172,10 +176,11 @@ fn repo_add(args: &clap::ArgMatches) {
 }
 
 fn repo_remove(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
     let package_name = args.value_of("PACKAGE_NAME").unwrap();
-    let mut repository = guzuta::Repository::new(std::path::PathBuf::from(args.value_of("DB_PATH").unwrap()),
-                                                 signer);
+    let mut repository = guzuta::Repository::new(std::path::PathBuf::from(args.value_of("DB_PATH")
+                                                     .unwrap()),
+                                                 signer.as_ref());
 
     repository.load();
     repository.remove(&package_name);
@@ -183,10 +188,11 @@ fn repo_remove(args: &clap::ArgMatches) {
 }
 
 fn files_add(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
     let package = guzuta::Package::load(&args.value_of("PACKAGE_PATH").unwrap());
-    let mut repository = guzuta::Repository::new(std::path::PathBuf::from(args.value_of("FILES_PATH").unwrap()),
-                                                 signer);
+    let mut repository =
+        guzuta::Repository::new(std::path::PathBuf::from(args.value_of("FILES_PATH").unwrap()),
+                                signer.as_ref());
 
     repository.load();
     repository.add(&package);
@@ -194,10 +200,11 @@ fn files_add(args: &clap::ArgMatches) {
 }
 
 fn files_remove(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key.to_owned()));
+    let signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
     let package_name = args.value_of("PACKAGE_NAME").unwrap();
-    let mut repository = guzuta::Repository::new(std::path::PathBuf::from(args.value_of("FILES_PATH").unwrap()),
-                                                 signer);
+    let mut repository =
+        guzuta::Repository::new(std::path::PathBuf::from(args.value_of("FILES_PATH").unwrap()),
+                                signer.as_ref());
 
     repository.load();
     repository.remove(&package_name);

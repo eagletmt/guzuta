@@ -41,14 +41,16 @@ pub struct PackageEntry {
 }
 
 #[derive(Clone)]
-pub struct Repository {
+pub struct Repository<'a> {
     path: std::path::PathBuf,
-    signer: Option<super::signer::Signer>,
+    signer: Option<&'a super::signer::Signer<'a>>,
     entries: std::collections::HashMap<String, PackageEntry>,
 }
 
-impl Repository {
-    pub fn new(path: std::path::PathBuf, signer: Option<super::signer::Signer>) -> Repository {
+impl<'a> Repository<'a> {
+    pub fn new(path: std::path::PathBuf,
+               signer: Option<&'a super::signer::Signer<'a>>)
+               -> Repository {
         return Repository {
             path: path,
             signer: signer,

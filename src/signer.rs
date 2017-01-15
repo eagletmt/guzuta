@@ -2,12 +2,12 @@ extern crate gpgme;
 extern crate std;
 
 #[derive(Debug, Default, Clone)]
-pub struct Signer {
-    key: String,
+pub struct Signer<'a> {
+    key: &'a str,
 }
 
-impl Signer {
-    pub fn new(key: String) -> Signer {
+impl<'a> Signer<'a> {
+    pub fn new(key: &'a str) -> Signer {
         return Signer { key: key };
     }
 
