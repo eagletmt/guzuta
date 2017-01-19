@@ -124,19 +124,22 @@ impl<'a> Repository<'a> {
             let pathname = pathbuf.to_str().unwrap();
             match entry.header().entry_type() {
                 tar::EntryType::Regular => {
-                    let splitn: Vec<&str> = pathname.splitn(2, '/').collect();
-                    if splitn.len() == 2 {
+                    let mut splitn = pathname.splitn(2, '/');
+                    let pkgname = splitn.next();
+                    let filename = splitn.next();
+                    let rest = splitn.next();
+                    if let (Some(pkgname), Some(filename), None) = (pkgname, filename, rest) {
                         let mut body = String::new();
                         try!(entry.read_to_string(&mut body));
-                        match splitn[1] {
+                        match filename {
                             "desc" => {
-                                desc_entries.insert(splitn[0].to_owned(), try!(parse_desc(&body)));
+                                desc_entries.insert(pkgname.to_owned(), try!(parse_desc(&body)));
                             }
                             "depends" => {
                                 // old format
                             }
                             "files" => {
-                                files_entries.insert(splitn[0].to_owned(), try!(parse_files(&body)));
+                                files_entries.insert(pkgname.to_owned(), try!(parse_files(&body)));
                             }
                             _ => {
                                 return Err(Error::from(format!("Unknown pathname: {}", pathname)));

@@ -231,10 +231,13 @@ fn parse_pkginfo(body: &str) -> Result<PkgInfo, Error> {
         if line.starts_with('#') {
             continue;
         }
-        let splitn: Vec<&str> = line.splitn(2, '=').collect();
-        if splitn.len() == 2 {
-            let key = splitn[0].trim();
-            let val = splitn[1].trim();
+        let mut splitn = line.splitn(2, '=');
+        let key = splitn.next();
+        let val = splitn.next();
+        let rest = splitn.next();
+        if let (Some(key), Some(val), None) = (key, val, rest) {
+            let key = key.trim();
+            let val = val.trim();
             match key {
                 "pkgname" => info.pkgname = val.to_owned(),
                 "pkgbase" => info.pkgbase = val.to_owned(),
