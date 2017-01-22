@@ -57,8 +57,8 @@ pub struct Package {
 }
 
 impl Package {
-    pub fn load<P: AsRef<std::path::Path>>(path: &P) -> Result<Package, Error> {
-        let (pkginfo, files) = try!(PkgInfo::load(path));
+    pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Package, Error> {
+        let (pkginfo, files) = try!(PkgInfo::load(path.as_ref()));
         let filename = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
         let sig_path = path.as_ref().parent().unwrap().join(format!("{}.sig", filename));
         let pgpsig = if let Ok(mut f) = std::fs::File::open(sig_path) {
@@ -72,7 +72,7 @@ impl Package {
         };
         let mut md5 = crypto::md5::Md5::new();
         let mut sha256 = crypto::sha2::Sha256::new();
-        let mut f = try!(std::fs::File::open(path));
+        let mut f = try!(std::fs::File::open(path.as_ref()));
         loop {
             let mut buf = [0; 1024];
             match f.read(&mut buf) {
@@ -199,7 +199,7 @@ pub struct PkgInfo {
 }
 
 impl PkgInfo {
-    fn load<P: AsRef<std::path::Path>>(path: &P) -> Result<(Self, Vec<String>), Error> {
+    fn load<P: AsRef<std::path::Path>>(path: P) -> Result<(Self, Vec<String>), Error> {
         let file = try!(std::fs::File::open(path));
         let xz_reader = try!(lzma::LzmaReader::new_decompressor(file));
         let mut tar_reader = tar::Archive::new(xz_reader);
