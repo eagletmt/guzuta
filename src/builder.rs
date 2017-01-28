@@ -122,15 +122,17 @@ impl<'a> Builder<'a> {
               Q: AsRef<std::path::Path>
     {
         let tempdir = try!(tempdir::TempDir::new("guzuta-pkgdest"));
-        try!(chroot_helper.makechrootpkg(package_dir, self.srcdest, &tempdir, self.logdest));
+        let pkgdest = tempdir.path();
+        try!(chroot_helper.makechrootpkg(package_dir, self.srcdest, pkgdest, self.logdest));
         let mut paths = vec![];
-        for entry in try!(std::fs::read_dir(tempdir)) {
+        for entry in try!(std::fs::read_dir(pkgdest)) {
             let entry = try!(entry);
             let dest = repo_dir.as_ref().join(entry.file_name());
             if dest.read_link().is_ok() {
                 // Unlink symlink created by makechrootpkg
                 try!(std::fs::remove_file(&dest));
             }
+            info!("Copy {} to {}", entry.path().display(), dest.display());
             try!(std::fs::copy(entry.path(), &dest));
             if let Some(ref signer) = self.signer {
                 let mut sig_dest = dest.clone().into_os_string();
