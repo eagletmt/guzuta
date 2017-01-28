@@ -35,7 +35,6 @@ impl<'a> Signer<'a> {
                                                                       -> Result<(), Error> {
         let mut ctx = try!(gpgme::create_context());
         try!(ctx.set_protocol(gpgme::PROTOCOL_OPENPGP));
-        ctx.set_armor(true);
         let key = try!(ctx.find_secret_key(self.key.to_owned()));
         try!(ctx.add_signer(&key));
         let mut input = try!(gpgme::Data::load(path.as_ref()));
