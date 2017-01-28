@@ -30,19 +30,19 @@ impl Config {
     }
 
     pub fn db_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
-        let mut path = self.repo_dir(arch).into_os_string();
+        let mut path = self.repo_dir(arch).join(&self.name).into_os_string();
         path.push(".db");
         return std::path::PathBuf::from(path);
     }
 
     pub fn files_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
-        let mut path = self.repo_dir(arch).into_os_string();
+        let mut path = self.repo_dir(arch).join(&self.name).into_os_string();
         path.push(".files");
         return std::path::PathBuf::from(path);
     }
 
     pub fn abs_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
-        let mut path = self.repo_dir(arch).into_os_string();
+        let mut path = self.repo_dir(arch).join(&self.name).into_os_string();
         path.push(".abs.tar.gz");
         return std::path::PathBuf::from(path);
     }
