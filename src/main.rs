@@ -293,6 +293,7 @@ fn omakase_build(args: &clap::ArgMatches) {
     let package_signer = config.package_key.as_ref().map(|key| guzuta::Signer::new(key));
     let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
     let builder = guzuta::Builder::new(package_signer.as_ref(), &config.srcdest, &config.logdest);
+    let s3 = config.s3.as_ref().map(|s3_config| guzuta::omakase::S3::new(s3_config));
 
     for (arch, build_config) in &config.builds {
         let chroot = guzuta::ChrootHelper::new(&build_config.chroot, arch.clone());
@@ -301,6 +302,10 @@ fn omakase_build(args: &clap::ArgMatches) {
         let files_path = config.files_path(arch);
         let abs_path = config.abs_path(arch);
         let package_dir = config.package_dir(package_name);
+
+        if let Some(ref s3) = s3 {
+            s3.download_repository(&config, &arch).unwrap();
+        }
 
         let mut db_repo = guzuta::Repository::new(db_path, repo_signer.as_ref());
         let mut files_repo = guzuta::Repository::new(files_path, repo_signer.as_ref());
@@ -311,7 +316,7 @@ fn omakase_build(args: &clap::ArgMatches) {
 
         let package_paths = builder.build_package(package_dir.as_path(), repo_dir, &chroot)
             .unwrap();
-        for path in package_paths {
+        for path in &package_paths {
             let package = guzuta::Package::load(&path).unwrap();
             db_repo.add(&package);
             files_repo.add(&package);
@@ -320,5 +325,9 @@ fn omakase_build(args: &clap::ArgMatches) {
         abs.add(package_dir.as_path(), &config.srcdest).unwrap();
         db_repo.save(false).unwrap();
         files_repo.save(true).unwrap();
+
+        if let Some(ref s3) = s3 {
+            s3.upload_repository(&config, &arch, &package_paths).unwrap();
+        }
     }
 }

@@ -1,12 +1,14 @@
 extern crate crypto;
 extern crate flate2;
 extern crate gpgme;
+extern crate hyper;
 extern crate lzma;
+extern crate rusoto;
 extern crate rustc_serialize;
-extern crate tar;
-extern crate tempdir;
 extern crate serde;
 extern crate serde_yaml;
+extern crate tar;
+extern crate tempdir;
 #[macro_use]
 extern crate log;
 #[macro_use]
