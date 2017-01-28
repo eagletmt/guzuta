@@ -83,7 +83,7 @@ impl<'a> ChrootHelper<'a> {
             .arg(logdest_arg)
             .arg("makechrootpkg")
             .arg("-cur")
-            .arg(self.chroot_dir);
+            .arg(current_dir.join(self.chroot_dir));
         info!("{:?}", cmd);
         let status = try!(cmd.status());
         if status.success() {
