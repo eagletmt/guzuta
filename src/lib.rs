@@ -5,8 +5,14 @@ extern crate lzma;
 extern crate rustc_serialize;
 extern crate tar;
 extern crate tempdir;
+extern crate serde;
+extern crate serde_yaml;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate serde_derive;
+
+pub mod omakase;
 
 mod abs;
 mod builder;

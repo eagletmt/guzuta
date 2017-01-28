@@ -24,11 +24,22 @@ impl From<super::signer::Error> for Error {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum Arch {
+    #[serde(rename = "i686")]
     I686,
+    #[serde(rename = "x86_64")]
     X86_64,
+}
+
+impl std::fmt::Display for Arch {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match *self {
+            Arch::I686 => "i686".fmt(f),
+            Arch::X86_64 => "x86_64".fmt(f),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -102,11 +113,14 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn build_package<P: AsRef<std::path::Path>>(&self,
-                                                    package_dir: &str,
-                                                    repo_dir: P,
-                                                    chroot_helper: &ChrootHelper)
-                                                    -> Result<Vec<std::path::PathBuf>, Error> {
+    pub fn build_package<P, Q>(&self,
+                               package_dir: P,
+                               repo_dir: Q,
+                               chroot_helper: &ChrootHelper)
+                               -> Result<Vec<std::path::PathBuf>, Error>
+        where P: AsRef<std::path::Path>,
+              Q: AsRef<std::path::Path>
+    {
         let tempdir = try!(tempdir::TempDir::new("guzuta-pkgdest"));
         try!(chroot_helper.makechrootpkg(package_dir, self.srcdest, &tempdir, self.logdest));
         let mut paths = vec![];

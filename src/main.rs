@@ -127,7 +127,12 @@ fn main() {
                 .help("Package name to be removed"))
             .arg(clap::Arg::with_name("ABS_PATH")
                 .required(true)
-                .help("Path to abs tarball")));
+                .help("Path to abs tarball")))
+        .subcommand(clap::SubCommand::with_name("omakase")
+            .about("Manage repository with S3")
+            .subcommand(clap::SubCommand::with_name("build")
+                .about("Build PACKAGE_NAME")
+                .arg(clap::Arg::with_name("PACKAGE_NAME").required(true))));
     let matches = app.get_matches();
 
     run_subcommand(matches.subcommand());
@@ -153,6 +158,16 @@ fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches>)) {
         }
         ("abs-remove", Some(abs_remove_command)) => {
             abs_remove(abs_remove_command);
+        }
+        ("omakase", Some(omakase_command)) => {
+            match omakase_command.subcommand() {
+                ("build", Some(build_command)) => {
+                    omakase_build(build_command);
+                }
+                _ => {
+                    panic!("Unknown subcommand");
+                }
+            }
         }
         _ => {
             panic!("Unknown subcommand");
@@ -269,4 +284,41 @@ fn abs_remove(args: &clap::ArgMatches) {
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
     abs.remove(package_name).unwrap();
+}
+
+fn omakase_build(args: &clap::ArgMatches) {
+    let package_name = args.value_of("PACKAGE_NAME").unwrap();
+    let file = std::fs::File::open(".guzuta.yml").unwrap();
+    let config = guzuta::omakase::Config::from_reader(file).unwrap();
+    let package_signer = config.package_key.as_ref().map(|key| guzuta::Signer::new(key));
+    let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
+    let builder = guzuta::Builder::new(package_signer.as_ref(), &config.srcdest, &config.logdest);
+
+    for (arch, build_config) in &config.builds {
+        let chroot = guzuta::ChrootHelper::new(&build_config.chroot, arch.clone());
+        let repo_dir = config.repo_dir(arch);
+        let db_path = config.db_path(arch);
+        let files_path = config.files_path(arch);
+        let abs_path = config.abs_path(arch);
+        let package_dir = config.package_dir(package_name);
+
+        let mut db_repo = guzuta::Repository::new(db_path, repo_signer.as_ref());
+        let mut files_repo = guzuta::Repository::new(files_path, repo_signer.as_ref());
+        let abs = guzuta::Abs::new(&config.name, abs_path);
+        db_repo.load().unwrap();
+        files_repo.load().unwrap();
+        std::fs::create_dir_all(repo_dir.as_path()).unwrap();
+
+        let package_paths = builder.build_package(package_dir.as_path(), repo_dir, &chroot)
+            .unwrap();
+        for path in package_paths {
+            let package = guzuta::Package::load(&path).unwrap();
+            db_repo.add(&package);
+            files_repo.add(&package);
+        }
+
+        abs.add(package_dir.as_path(), &config.srcdest).unwrap();
+        db_repo.save(false).unwrap();
+        files_repo.save(true).unwrap();
+    }
 }
