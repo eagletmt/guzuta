@@ -99,7 +99,13 @@ impl<'a> Abs<'a> {
         }
 
         for entry in try!(std::fs::read_dir(srcpkgdest.path())) {
-            let path = try!(entry).path();
+            let entry = try!(entry);
+            let symlink_source_package_path = package_dir.as_ref().join(entry.file_name());
+            if symlink_source_package_path.read_link().is_ok() {
+                info!("Unlink symlink {}", symlink_source_package_path.display());
+                try!(std::fs::remove_file(symlink_source_package_path));
+            }
+            let path = entry.path();
             info!("Unarchive source package {} into {}",
                   path.display(),
                   root_dir.as_ref().display());
