@@ -9,7 +9,7 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
-clap = "2.19"
+clap = "2.20"
 env_logger = "0.3"
 flate2 = "0.2"
 gpgme = "0.4"
