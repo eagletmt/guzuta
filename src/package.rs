@@ -158,6 +158,9 @@ impl Package {
     pub fn provides(&self) -> &Vec<String> {
         &self.pkginfo.provides
     }
+    pub fn backups(&self) -> &Vec<String> {
+        &self.pkginfo.backups
+    }
     pub fn depends(&self) -> &Vec<String> {
         &self.pkginfo.depends
     }
@@ -194,6 +197,7 @@ pub struct PkgInfo {
     pub checkdepends: Vec<String>,
     pub optdepends: Vec<String>,
     pub conflicts: Vec<String>,
+    pub backups: Vec<String>,
     pub provides: Vec<String>,
     pub replaces: Vec<String>,
 }
@@ -256,6 +260,7 @@ fn parse_pkginfo(body: &str) -> Result<PkgInfo, Error> {
                 "optdepend" => info.optdepends.push(val.to_owned()),
                 "conflict" => info.conflicts.push(val.to_owned()),
                 "provides" => info.provides.push(val.to_owned()),
+                "backup" => info.backups.push(val.to_owned()),
                 "replaces" => info.replaces.push(val.to_owned()),
                 _ => return Err(Error::from(format!("Unknown PKGINFO entry '{}': {}", key, line))),
             }

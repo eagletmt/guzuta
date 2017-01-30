@@ -70,6 +70,7 @@ pub struct Desc {
     // https://git.archlinux.org/pacman.git/commit/?id=b520c6312ff0ffec864576b5218f1638fae1e18b
     conflicts: Vec<String>,
     provides: Vec<String>,
+    backups: Vec<String>,
     depends: Vec<String>,
     makedepends: Vec<String>,
     checkdepends: Vec<String>,
@@ -188,6 +189,7 @@ impl<'a> Repository<'a> {
             packager: package.packager().to_owned(),
             conflicts: package.conflicts().to_owned(),
             provides: package.provides().to_owned(),
+            backups: package.backups().to_owned(),
             depends: package.depends().to_owned(),
             makedepends: package.makedepends().to_owned(),
             checkdepends: package.checkdepends().to_owned(),
