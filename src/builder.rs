@@ -122,13 +122,14 @@ impl<'a> Builder<'a> {
         where P: AsRef<std::path::Path>,
               Q: AsRef<std::path::Path>
     {
+        let package_dir = package_dir.as_ref();
         let tempdir = try!(tempdir::TempDir::new("guzuta-pkgdest"));
         let pkgdest = tempdir.path();
-        try!(chroot_helper.makechrootpkg(package_dir.as_ref(), self.srcdest, pkgdest, self.logdest));
+        try!(chroot_helper.makechrootpkg(package_dir, self.srcdest, pkgdest, self.logdest));
         let mut paths = vec![];
         for entry in try!(std::fs::read_dir(pkgdest)) {
             let entry = try!(entry);
-            let symlink_package_path = package_dir.as_ref().join(entry.file_name());
+            let symlink_package_path = package_dir.join(entry.file_name());
             if symlink_package_path.read_link().is_ok() {
                 // Unlink symlink created by makechrootpkg
                 info!("Unlink symlink {}", symlink_package_path.display());

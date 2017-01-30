@@ -199,14 +199,13 @@ fn build(args: &clap::ArgMatches) {
     let package_dir = args.value_of("PACKAGE_DIR").unwrap();
 
     let repo_signer = args.value_of("repo-key").map(|key| guzuta::Signer::new(key));
+    let repo_signer = repo_signer.as_ref();
     let mut db_path = repo_dir.join(repo_name).into_os_string();
     db_path.push(".db");
     let mut files_path = repo_dir.join(repo_name).into_os_string();
     files_path.push(".files");
-    let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path),
-                                              repo_signer.as_ref());
-    let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path),
-                                                 repo_signer.as_ref());
+    let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path), repo_signer);
+    let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path), repo_signer);
     db_repo.load().unwrap();
     files_repo.load().unwrap();
     let mut abs_path = repo_dir.join(repo_name).into_os_string();
@@ -299,6 +298,7 @@ fn omakase_build(args: &clap::ArgMatches) {
     let config = guzuta::omakase::Config::from_reader(file).unwrap();
     let package_signer = config.package_key.as_ref().map(|key| guzuta::Signer::new(key));
     let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
+    let repo_signer = repo_signer.as_ref();
     let builder = guzuta::Builder::new(package_signer.as_ref(), &config.srcdest, &config.logdest);
     let s3 = config.s3.as_ref().map(|s3_config| guzuta::omakase::S3::new(s3_config));
 
@@ -314,8 +314,8 @@ fn omakase_build(args: &clap::ArgMatches) {
             s3.download_repository(&config, arch).unwrap();
         }
 
-        let mut db_repo = guzuta::Repository::new(db_path, repo_signer.as_ref());
-        let mut files_repo = guzuta::Repository::new(files_path, repo_signer.as_ref());
+        let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
+        let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
         let abs = guzuta::Abs::new(&config.name, abs_path);
         db_repo.load().unwrap();
         files_repo.load().unwrap();
@@ -344,6 +344,7 @@ fn omakase_remove(args: &clap::ArgMatches) {
     let file = std::fs::File::open(".guzuta.yml").unwrap();
     let config = guzuta::omakase::Config::from_reader(file).unwrap();
     let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
+    let repo_signer = repo_signer.as_ref();
     let s3 = config.s3.as_ref().map(|s3_config| guzuta::omakase::S3::new(s3_config));
 
     for (arch, _) in &config.builds {
@@ -355,8 +356,8 @@ fn omakase_remove(args: &clap::ArgMatches) {
             s3.download_repository(&config, arch).unwrap();
         }
 
-        let mut db_repo = guzuta::Repository::new(db_path, repo_signer.as_ref());
-        let mut files_repo = guzuta::Repository::new(files_path, repo_signer.as_ref());
+        let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
+        let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
         let abs = guzuta::Abs::new(&config.name, abs_path);
         db_repo.load().unwrap();
         files_repo.load().unwrap();

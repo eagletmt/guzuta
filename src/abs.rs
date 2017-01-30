@@ -36,8 +36,9 @@ impl<'a> Abs<'a> {
               Q: AsRef<std::path::Path>
     {
         let root = try!(tempdir::TempDir::new("guzuta-abs-root"));
-        try!(self.unarchive(root.as_ref(), self.abs_path.as_path()));
-        try!(self.add_srcpkg(root.as_ref(), package_dir, srcdest));
+        let root = root.as_ref();
+        try!(self.unarchive(root, self.abs_path.as_path()));
+        try!(self.add_srcpkg(root, package_dir, srcdest));
         try!(self.archive(root, self.abs_path.as_path()));
         Ok(())
     }
@@ -81,6 +82,8 @@ impl<'a> Abs<'a> {
               Q: AsRef<std::path::Path>,
               R: AsRef<std::path::Path>
     {
+        let package_dir = package_dir.as_ref();
+        let root_dir = root_dir.as_ref();
         let current_dir_buf = try!(std::env::current_dir());
         let current_dir = current_dir_buf.as_path();
         let srcdest = current_dir.join(srcdest);
@@ -90,7 +93,7 @@ impl<'a> Abs<'a> {
         cmd.env("SRCDEST", srcdest)
             .env("SRCPKGDEST", srcpkgdest.path())
             .env("BUILDDIR", builddir.path())
-            .current_dir(package_dir.as_ref())
+            .current_dir(package_dir)
             .arg("--source");
         info!("{:?}", cmd);
         let status = try!(cmd.status());
@@ -100,7 +103,7 @@ impl<'a> Abs<'a> {
 
         for entry in try!(std::fs::read_dir(srcpkgdest.path())) {
             let entry = try!(entry);
-            let symlink_source_package_path = package_dir.as_ref().join(entry.file_name());
+            let symlink_source_package_path = package_dir.join(entry.file_name());
             if symlink_source_package_path.read_link().is_ok() {
                 info!("Unlink symlink {}", symlink_source_package_path.display());
                 try!(std::fs::remove_file(symlink_source_package_path));
@@ -108,8 +111,8 @@ impl<'a> Abs<'a> {
             let path = entry.path();
             info!("Unarchive source package {} into {}",
                   path.display(),
-                  root_dir.as_ref().display());
-            try!(self.unarchive(root_dir.as_ref().join(self.repo_name), path));
+                  root_dir.display());
+            try!(self.unarchive(root_dir.join(self.repo_name), path));
             return Ok(());
         }
         return Err(Error::Custom("No source pakcage is generated"));
@@ -119,10 +122,11 @@ impl<'a> Abs<'a> {
         where P: AsRef<std::path::Path>,
               Q: AsRef<std::path::Path>
     {
+        let root_dir = root_dir.as_ref();
         let file = try!(std::fs::File::create(abs_path.as_ref()));
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
         let mut builder = tar::Builder::new(gz_writer);
-        try!(self.archive_path(&mut builder, root_dir.as_ref(), root_dir.as_ref()));
+        try!(self.archive_path(&mut builder, root_dir, root_dir));
         let gz_writer = try!(builder.into_inner());
         try!(gz_writer.finish());
         Ok(())
@@ -137,20 +141,21 @@ impl<'a> Abs<'a> {
               P: AsRef<std::path::Path>,
               Q: AsRef<std::path::Path>
     {
-        let path_in_archive =
-            path.as_ref().strip_prefix(root_dir.as_ref()).expect("Failed to strip prefix");
-        if path.as_ref().is_dir() {
+        let root_dir = root_dir.as_ref();
+        let path = path.as_ref();
+        let path_in_archive = path.strip_prefix(root_dir).expect("Failed to strip prefix");
+        if path.is_dir() {
             if !path_in_archive.as_os_str().is_empty() {
                 let mut path_in_archive = path_in_archive.to_path_buf().into_os_string();
                 path_in_archive.push("/");
-                try!(builder.append_dir(path_in_archive, path.as_ref()));
+                try!(builder.append_dir(path_in_archive, path));
             }
-            for entry in try!(std::fs::read_dir(path.as_ref())) {
-                try!(self.archive_path(&mut builder, root_dir.as_ref(), try!(entry).path()));
+            for entry in try!(std::fs::read_dir(path)) {
+                try!(self.archive_path(&mut builder, root_dir, try!(entry).path()));
             }
             Ok(())
-        } else if path.as_ref().is_file() {
-            let mut file = try!(std::fs::File::open(path.as_ref()));
+        } else if path.is_file() {
+            let mut file = try!(std::fs::File::open(path));
             try!(builder.append_file(path_in_archive, &mut file));
             Ok(())
         } else {

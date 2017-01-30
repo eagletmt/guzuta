@@ -175,13 +175,14 @@ impl S3 {
     {
         use std::io::Write;
 
-        let mut file = try!(std::fs::File::create(path.as_ref()));
+        let path = path.as_ref();
+        let mut file = try!(std::fs::File::create(path));
         let mut request = rusoto::s3::GetObjectRequest::default();
         request.bucket = self.bucket.to_owned();
-        request.key = path.as_ref().to_string_lossy().into_owned();
+        request.key = path.to_string_lossy().into_owned();
         // FIXME: https://github.com/rusoto/rusoto/issues/545
         request.response_content_type = Some("application/octet-stream".to_owned());
-        println!("Download {}", path.as_ref().display());
+        println!("Download {}", path.display());
         // FIXME: need streaming for large files
         // https://github.com/rusoto/rusoto/issues/481
         match self.client.get_object(&request) {
@@ -201,17 +202,18 @@ impl S3 {
     {
         use std::io::Read;
 
+        let path = path.as_ref();
         let mut request = rusoto::s3::PutObjectRequest::default();
         request.bucket = self.bucket.to_owned();
-        request.key = path.as_ref().to_string_lossy().into_owned();
+        request.key = path.to_string_lossy().into_owned();
         request.content_type = Some(content_type.to_owned());
         // FIXME: need streaming for large files
         // https://github.com/rusoto/rusoto/issues/481
-        let mut file = try!(std::fs::File::open(path.as_ref()));
+        let mut file = try!(std::fs::File::open(path));
         let mut body = vec![];
         try!(file.read_to_end(&mut body));
         request.body = Some(body);
-        println!("Upload {}", path.as_ref().display());
+        println!("Upload {}", path.display());
         try!(self.client.put_object(&request));
         Ok(())
     }

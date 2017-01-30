@@ -60,8 +60,9 @@ impl Package {
     pub fn load<P>(path: P) -> Result<Package, Error>
         where P: AsRef<std::path::Path>
     {
-        let (pkginfo, files) = try!(PkgInfo::load(path.as_ref()));
-        let mut sig_path = path.as_ref().as_os_str().to_os_string();
+        let path = path.as_ref();
+        let (pkginfo, files) = try!(PkgInfo::load(path));
+        let mut sig_path = path.as_os_str().to_os_string();
         sig_path.push(".sig");
         let pgpsig = if let Ok(mut f) = std::fs::File::open(sig_path) {
             use rustc_serialize::base64::ToBase64;
@@ -74,7 +75,7 @@ impl Package {
         };
         let mut md5 = crypto::md5::Md5::new();
         let mut sha256 = crypto::sha2::Sha256::new();
-        let mut f = try!(std::fs::File::open(path.as_ref()));
+        let mut f = try!(std::fs::File::open(path));
         loop {
             let mut buf = [0; 1024];
             match f.read(&mut buf) {
@@ -93,8 +94,8 @@ impl Package {
 
         Ok(Package {
             pkginfo: pkginfo,
-            size: try!(std::fs::metadata(path.as_ref())).len(),
-            filename: path.as_ref().file_name().unwrap().to_os_string(),
+            size: try!(std::fs::metadata(path)).len(),
+            filename: path.file_name().unwrap().to_os_string(),
             pgpsig: pgpsig,
             md5sum: md5.result_str(),
             sha256sum: sha256.result_str(),
