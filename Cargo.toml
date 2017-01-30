@@ -1,7 +1,12 @@
 [package]
 name = "guzuta"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
+description = "Custom repository manager for ArchLinux pacman"
+homepage = "https://github.com/eagletmt/guzuta"
+repository = "https://github.com/eagletmt/guzuta"
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
 clap = "2.19"

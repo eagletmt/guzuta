@@ -6,7 +6,7 @@ fn main() {
     env_logger::init().unwrap();
 
     let app = clap::App::new("guzuta")
-        .version("0.0.0")
+        .version("0.1.0")
         .about("Custom repository manager for ArchLinux pacman")
         .setting(clap::AppSettings::SubcommandRequired)
         .subcommand(clap::SubCommand::with_name("build")
