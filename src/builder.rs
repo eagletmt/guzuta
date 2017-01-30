@@ -56,16 +56,17 @@ impl<'a> ChrootHelper<'a> {
         }
     }
 
-    pub fn makechrootpkg<P: AsRef<std::path::Path>,
-                         Q: AsRef<std::path::Path>,
-                         R: AsRef<std::path::Path>,
-                         S: AsRef<std::path::Path>>
-        (&self,
-         package_dir: P,
-         srcdest: Q,
-         pkgdest: R,
-         logdest: S)
-         -> Result<(), Error> {
+    pub fn makechrootpkg<P, Q, R, S>(&self,
+                                     package_dir: P,
+                                     srcdest: Q,
+                                     pkgdest: R,
+                                     logdest: S)
+                                     -> Result<(), Error>
+        where P: AsRef<std::path::Path>,
+              Q: AsRef<std::path::Path>,
+              R: AsRef<std::path::Path>,
+              S: AsRef<std::path::Path>
+    {
         let current_dir_buf = try!(std::env::current_dir());
         let current_dir = current_dir_buf.as_path();
         let mut srcdest_arg = std::ffi::OsString::from("SRCDEST=");

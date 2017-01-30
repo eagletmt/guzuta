@@ -22,17 +22,19 @@ pub struct Abs<'a> {
 }
 
 impl<'a> Abs<'a> {
-    pub fn new<P: AsRef<std::path::Path>>(repo_name: &'a str, abs_path: P) -> Self {
+    pub fn new<P>(repo_name: &'a str, abs_path: P) -> Self
+        where P: AsRef<std::path::Path>
+    {
         Abs {
             repo_name: repo_name,
             abs_path: abs_path.as_ref().to_path_buf(),
         }
     }
 
-    pub fn add<P: AsRef<std::path::Path>, Q: AsRef<std::path::Path>>(&self,
-                                                                     package_dir: P,
-                                                                     srcdest: Q)
-                                                                     -> Result<(), Error> {
+    pub fn add<P, Q>(&self, package_dir: P, srcdest: Q) -> Result<(), Error>
+        where P: AsRef<std::path::Path>,
+              Q: AsRef<std::path::Path>
+    {
         let root = try!(tempdir::TempDir::new("guzuta-abs-root"));
         try!(self.unarchive(root.as_ref(), self.abs_path.as_path()));
         try!(self.add_srcpkg(root.as_ref(), package_dir, srcdest));
@@ -48,11 +50,10 @@ impl<'a> Abs<'a> {
         Ok(())
     }
 
-    fn unarchive<P: AsRef<std::path::Path>, Q: AsRef<std::path::Path>>
-        (&self,
-         root_dir: P,
-         abs_path: Q)
-         -> Result<(), std::io::Error> {
+    fn unarchive<P, Q>(&self, root_dir: P, abs_path: Q) -> Result<(), std::io::Error>
+        where P: AsRef<std::path::Path>,
+              Q: AsRef<std::path::Path>
+    {
         match std::fs::File::open(abs_path) {
             Ok(file) => self.unarchive_file(root_dir, file),
             Err(e) => {
@@ -65,23 +66,21 @@ impl<'a> Abs<'a> {
         }
     }
 
-    fn unarchive_file<P: AsRef<std::path::Path>, R: std::io::Read>
-        (&self,
-         root_dir: P,
-         abs_file: R)
-         -> Result<(), std::io::Error> {
+    fn unarchive_file<P, R>(&self, root_dir: P, abs_file: R) -> Result<(), std::io::Error>
+        where P: AsRef<std::path::Path>,
+              R: std::io::Read
+    {
         let gz_reader = try!(flate2::read::GzDecoder::new(abs_file));
         let mut tar_reader = tar::Archive::new(gz_reader);
         try!(tar_reader.unpack(root_dir));
         Ok(())
     }
 
-    fn add_srcpkg<P: AsRef<std::path::Path>, Q: AsRef<std::path::Path>, R: AsRef<std::path::Path>>
-        (&self,
-         root_dir: P,
-         package_dir: Q,
-         srcdest: R)
-         -> Result<(), Error> {
+    fn add_srcpkg<P, Q, R>(&self, root_dir: P, package_dir: Q, srcdest: R) -> Result<(), Error>
+        where P: AsRef<std::path::Path>,
+              Q: AsRef<std::path::Path>,
+              R: AsRef<std::path::Path>
+    {
         let current_dir_buf = try!(std::env::current_dir());
         let current_dir = current_dir_buf.as_path();
         let srcdest = current_dir.join(srcdest);
@@ -110,11 +109,10 @@ impl<'a> Abs<'a> {
         return Err(Error::Custom("No source pakcage is generated"));
     }
 
-    fn archive<P: AsRef<std::path::Path>, Q: AsRef<std::path::Path>>
-        (&self,
-         root_dir: P,
-         abs_path: Q)
-         -> Result<(), std::io::Error> {
+    fn archive<P, Q>(&self, root_dir: P, abs_path: Q) -> Result<(), std::io::Error>
+        where P: AsRef<std::path::Path>,
+              Q: AsRef<std::path::Path>
+    {
         let file = try!(std::fs::File::create(abs_path.as_ref()));
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
         let mut builder = tar::Builder::new(gz_writer);
@@ -124,12 +122,15 @@ impl<'a> Abs<'a> {
         Ok(())
     }
 
-    fn archive_path<W: std::io::Write, P: AsRef<std::path::Path>, Q: AsRef<std::path::Path>>
-        (&self,
-         mut builder: &mut tar::Builder<W>,
-         root_dir: P,
-         path: Q)
-         -> Result<(), std::io::Error> {
+    fn archive_path<W, P, Q>(&self,
+                             mut builder: &mut tar::Builder<W>,
+                             root_dir: P,
+                             path: Q)
+                             -> Result<(), std::io::Error>
+        where W: std::io::Write,
+              P: AsRef<std::path::Path>,
+              Q: AsRef<std::path::Path>
+    {
         let path_in_archive =
             path.as_ref().strip_prefix(root_dir.as_ref()).expect("Failed to strip prefix");
         if path.as_ref().is_dir() {

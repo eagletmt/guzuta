@@ -57,7 +57,9 @@ pub struct Package {
 }
 
 impl Package {
-    pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<Package, Error> {
+    pub fn load<P>(path: P) -> Result<Package, Error>
+        where P: AsRef<std::path::Path>
+    {
         let (pkginfo, files) = try!(PkgInfo::load(path.as_ref()));
         let filename = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
         let sig_path = path.as_ref().parent().unwrap().join(format!("{}.sig", filename));
@@ -203,7 +205,9 @@ pub struct PkgInfo {
 }
 
 impl PkgInfo {
-    fn load<P: AsRef<std::path::Path>>(path: P) -> Result<(Self, Vec<String>), Error> {
+    fn load<P>(path: P) -> Result<(Self, Vec<String>), Error>
+        where P: AsRef<std::path::Path>
+    {
         let file = try!(std::fs::File::open(path));
         let xz_reader = try!(lzma::LzmaReader::new_decompressor(file));
         let mut tar_reader = tar::Archive::new(xz_reader);
