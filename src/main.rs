@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate clap;
 extern crate env_logger;
 extern crate guzuta;
@@ -6,7 +7,7 @@ fn main() {
     env_logger::init().unwrap();
 
     let app = clap::App::new("guzuta")
-        .version("0.1.0")
+        .version(crate_version!())
         .about("Custom repository manager for ArchLinux pacman")
         .setting(clap::AppSettings::SubcommandRequired)
         .subcommand(clap::SubCommand::with_name("build")
