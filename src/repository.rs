@@ -80,7 +80,7 @@ pub struct Desc {
 #[derive(Clone)]
 pub struct PackageEntry {
     pub desc: Desc,
-    pub files: Vec<String>,
+    pub files: Vec<std::path::PathBuf>,
 }
 
 #[derive(Clone)]
@@ -241,8 +241,8 @@ impl<'a> Repository<'a> {
                 files_header.set_entry_type(tar::EntryType::Regular);
                 try!(files_header.set_path(pathbuf.join("files")));
                 files_header.set_mode(0o644);
-                let files_str = into_files_file(&package_entry.files);
-                let files_bytes = files_str.as_bytes();
+                let files_vec = into_files_file(&package_entry.files);
+                let files_bytes = files_vec.as_slice();
                 files_header.set_size(files_bytes.len() as u64);
                 files_header.set_cksum();
                 try!(builder.append(&files_header, files_bytes));
@@ -435,13 +435,13 @@ fn desc_write_u64(buf: &mut String, key: &str, val: u64) {
     }
 }
 
-fn parse_files(body: &str) -> Result<Vec<String>, Error> {
+fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, Error> {
     let mut iter = body.lines();
 
     if let Some("%FILES%") = iter.next() {
         let mut files = vec![];
         for line in iter {
-            files.push(line.to_owned());
+            files.push(std::path::PathBuf::from(line));
         }
         Ok(files)
     } else {
@@ -449,12 +449,14 @@ fn parse_files(body: &str) -> Result<Vec<String>, Error> {
     }
 }
 
-fn into_files_file(files: &Vec<String>) -> String {
-    let mut buf = String::new();
-    buf.push_str("%FILES%\n");
+fn into_files_file(files: &Vec<std::path::PathBuf>) -> Vec<u8> {
+    let mut buf = vec![];
+    buf.extend_from_slice(b"%FILES%\n");
     for file in files {
-        buf.push_str(file);
-        buf.push_str("\n");
+        use std::os::unix::ffi::OsStrExt;
+
+        buf.extend(file.as_os_str().as_bytes());
+        buf.extend_from_slice(b"\n");
     }
     return buf;
 }

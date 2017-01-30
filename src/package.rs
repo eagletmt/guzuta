@@ -53,7 +53,7 @@ pub struct Package {
     pgpsig: String,
     md5sum: String,
     sha256sum: String,
-    files: Vec<String>,
+    files: Vec<std::path::PathBuf>,
 }
 
 impl Package {
@@ -176,7 +176,7 @@ impl Package {
         &self.pkginfo.optdepends
     }
 
-    pub fn files(&self) -> &Vec<String> {
+    pub fn files(&self) -> &Vec<std::path::PathBuf> {
         &self.files
     }
 }
@@ -205,7 +205,7 @@ pub struct PkgInfo {
 }
 
 impl PkgInfo {
-    fn load<P>(path: P) -> Result<(Self, Vec<String>), Error>
+    fn load<P>(path: P) -> Result<(Self, Vec<std::path::PathBuf>), Error>
         where P: AsRef<std::path::Path>
     {
         let file = try!(std::fs::File::open(path));
@@ -215,14 +215,15 @@ impl PkgInfo {
         let mut files = vec![];
         for entry_result in try!(tar_reader.entries()) {
             let mut entry = try!(entry_result);
-            let path = try!(entry.path()).to_mut().to_string_lossy().into_owned();
-            if path == ".PKGINFO" && entry.header().entry_type() == tar::EntryType::Regular {
+            let path = try!(entry.path()).into_owned();
+            if path.as_os_str() == ".PKGINFO" &&
+               entry.header().entry_type() == tar::EntryType::Regular {
                 let mut body = String::new();
                 try!(entry.read_to_string(&mut body));
                 pkginfo = Some(try!(parse_pkginfo(&body)));
             }
             if !path.starts_with(".") {
-                files.push(path);
+                files.push(path.to_path_buf());
             }
         }
         if let Some(pkginfo) = pkginfo {
