@@ -51,7 +51,7 @@ pub struct Desc {
     groups: Vec<String>,
     license: Vec<String>,
     replaces: Vec<String>,
-    filename: String,
+    filename: std::ffi::OsString,
     name: String,
     base: String,
     version: String,
@@ -173,7 +173,7 @@ impl<'a> Repository<'a> {
             groups: package.groups().to_owned(),
             license: package.license().to_owned(),
             replaces: package.replaces().to_owned(),
-            filename: package.filename().to_owned(),
+            filename: package.filename().to_os_string(),
             name: package.pkgname().to_owned(),
             base: package.pkgbase().to_owned(),
             version: package.pkgver().to_owned(),
@@ -230,8 +230,8 @@ impl<'a> Repository<'a> {
                 desc_header.set_entry_type(tar::EntryType::Regular);
                 try!(desc_header.set_path(pathbuf.join("desc")));
                 desc_header.set_mode(0o644);
-                let desc_str = into_desc_file(package_entry);
-                let desc_bytes = desc_str.as_bytes();
+                let desc_vec = into_desc_file(package_entry);
+                let desc_bytes = desc_vec.as_slice();
                 desc_header.set_size(desc_bytes.len() as u64);
                 desc_header.set_cksum();
                 try!(builder.append(&desc_header, desc_bytes));
@@ -273,7 +273,7 @@ fn parse_desc(body: &str) -> Result<Desc, Error> {
                 desc.replaces.push(val.to_owned());
             }
             "FILENAME" => {
-                desc.filename = val.to_owned();
+                desc.filename = std::ffi::OsString::from(val);
             }
             "NAME" => {
                 desc.name = val.to_owned();
@@ -373,65 +373,77 @@ fn each_entry(body: &str) -> EachEntry {
     }
 }
 
-fn into_desc_file(package_entry: &PackageEntry) -> String {
-    let mut buf = String::new();
+fn into_desc_file(package_entry: &PackageEntry) -> Vec<u8> {
+    let mut buf = vec![];
     let ref desc = package_entry.desc;
-    desc_write_array(&mut buf, "GROUPS", &desc.groups);
-    desc_write_array(&mut buf, "REPLACES", &desc.replaces);
-    desc_write_string(&mut buf, "FILENAME", &desc.filename);
-    desc_write_string(&mut buf, "NAME", &desc.name);
-    desc_write_string(&mut buf, "BASE", &desc.base);
-    desc_write_string(&mut buf, "VERSION", &desc.version);
-    desc_write_string(&mut buf, "DESC", &desc.desc);
-    desc_write_u64(&mut buf, "CSIZE", desc.csize);
-    desc_write_u64(&mut buf, "ISIZE", desc.isize);
-    desc_write_string(&mut buf, "MD5SUM", &desc.md5sum);
-    desc_write_string(&mut buf, "SHA256SUM", &desc.sha256sum);
-    desc_write_string(&mut buf, "PGPSIG", &desc.pgpsig);
-    desc_write_string(&mut buf, "URL", &desc.url);
-    desc_write_array(&mut buf, "LICENSE", &desc.license);
-    desc_write_string(&mut buf, "ARCH", &desc.arch);
-    desc_write_u64(&mut buf, "BUILDDATE", desc.builddate);
-    desc_write_string(&mut buf, "PACKAGER", &desc.packager);
-    desc_write_array(&mut buf, "CONFLICTS", &desc.conflicts);
-    desc_write_array(&mut buf, "PROVIDES", &desc.provides);
-    desc_write_array(&mut buf, "DEPENDS", &desc.depends);
-    desc_write_array(&mut buf, "MAKEDEPENDS", &desc.makedepends);
-    desc_write_array(&mut buf, "CHECKDEPENDS", &desc.checkdepends);
-    desc_write_array(&mut buf, "OPTDEPENDS", &desc.optdepends);
+    desc_write_array(&mut buf, b"GROUPS", &desc.groups);
+    desc_write_array(&mut buf, b"REPLACES", &desc.replaces);
+    desc_write_os_str(&mut buf, b"FILENAME", &desc.filename);
+    desc_write_string(&mut buf, b"NAME", &desc.name);
+    desc_write_string(&mut buf, b"BASE", &desc.base);
+    desc_write_string(&mut buf, b"VERSION", &desc.version);
+    desc_write_string(&mut buf, b"DESC", &desc.desc);
+    desc_write_u64(&mut buf, b"CSIZE", desc.csize);
+    desc_write_u64(&mut buf, b"ISIZE", desc.isize);
+    desc_write_string(&mut buf, b"MD5SUM", &desc.md5sum);
+    desc_write_string(&mut buf, b"SHA256SUM", &desc.sha256sum);
+    desc_write_string(&mut buf, b"PGPSIG", &desc.pgpsig);
+    desc_write_string(&mut buf, b"URL", &desc.url);
+    desc_write_array(&mut buf, b"LICENSE", &desc.license);
+    desc_write_string(&mut buf, b"ARCH", &desc.arch);
+    desc_write_u64(&mut buf, b"BUILDDATE", desc.builddate);
+    desc_write_string(&mut buf, b"PACKAGER", &desc.packager);
+    desc_write_array(&mut buf, b"CONFLICTS", &desc.conflicts);
+    desc_write_array(&mut buf, b"PROVIDES", &desc.provides);
+    desc_write_array(&mut buf, b"DEPENDS", &desc.depends);
+    desc_write_array(&mut buf, b"MAKEDEPENDS", &desc.makedepends);
+    desc_write_array(&mut buf, b"CHECKDEPENDS", &desc.checkdepends);
+    desc_write_array(&mut buf, b"OPTDEPENDS", &desc.optdepends);
     return buf;
 }
 
-fn desc_write_array(buf: &mut String, key: &str, xs: &Vec<String>) {
+fn desc_write_array(buf: &mut Vec<u8>, key: &[u8], xs: &Vec<String>) {
     if !xs.is_empty() {
-        buf.push_str("%");
-        buf.push_str(key);
-        buf.push_str("%\n");
+        buf.extend_from_slice(b"%");
+        buf.extend_from_slice(key);
+        buf.extend_from_slice(b"%\n");
         for x in xs {
-            buf.push_str(&x);
-            buf.push_str("\n");
+            buf.extend_from_slice(x.as_bytes());
+            buf.extend_from_slice(b"\n");
         }
-        buf.push_str("\n");
+        buf.extend_from_slice(b"\n");
     }
 }
 
-fn desc_write_string(buf: &mut String, key: &str, val: &str) {
+fn desc_write_string(buf: &mut Vec<u8>, key: &[u8], val: &str) {
     if !val.is_empty() {
-        buf.push_str("%");
-        buf.push_str(key);
-        buf.push_str("%\n");
-        buf.push_str(val);
-        buf.push_str("\n\n");
+        buf.extend_from_slice(b"%");
+        buf.extend_from_slice(key);
+        buf.extend_from_slice(b"%\n");
+        buf.extend_from_slice(val.as_bytes());
+        buf.extend_from_slice(b"\n\n");
     }
 }
 
-fn desc_write_u64(buf: &mut String, key: &str, val: u64) {
+fn desc_write_os_str(buf: &mut Vec<u8>, key: &[u8], val: &std::ffi::OsStr) {
+    if !val.is_empty() {
+        use std::os::unix::ffi::OsStrExt;
+
+        buf.extend_from_slice(b"%");
+        buf.extend_from_slice(key);
+        buf.extend_from_slice(b"%\n");
+        buf.extend(val.as_bytes());
+        buf.extend_from_slice(b"\n\n");
+    }
+}
+
+fn desc_write_u64(buf: &mut Vec<u8>, key: &[u8], val: u64) {
     if val != 0 {
-        buf.push_str("%");
-        buf.push_str(key);
-        buf.push_str("%\n");
-        buf.push_str(&format!("{}", val));
-        buf.push_str("\n\n");
+        buf.extend_from_slice(b"%");
+        buf.extend_from_slice(key);
+        buf.extend_from_slice(b"%\n");
+        buf.extend_from_slice(format!("{}", val).as_bytes());
+        buf.extend_from_slice(b"\n\n");
     }
 }
 

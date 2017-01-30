@@ -49,7 +49,7 @@ impl From<String> for Error {
 pub struct Package {
     pkginfo: PkgInfo,
     size: u64,
-    filename: String,
+    filename: std::ffi::OsString,
     pgpsig: String,
     md5sum: String,
     sha256sum: String,
@@ -61,8 +61,8 @@ impl Package {
         where P: AsRef<std::path::Path>
     {
         let (pkginfo, files) = try!(PkgInfo::load(path.as_ref()));
-        let filename = path.as_ref().file_name().unwrap().to_string_lossy().into_owned();
-        let sig_path = path.as_ref().parent().unwrap().join(format!("{}.sig", filename));
+        let mut sig_path = path.as_ref().as_os_str().to_os_string();
+        sig_path.push(".sig");
         let pgpsig = if let Ok(mut f) = std::fs::File::open(sig_path) {
             use rustc_serialize::base64::ToBase64;
 
@@ -93,8 +93,8 @@ impl Package {
 
         Ok(Package {
             pkginfo: pkginfo,
-            size: try!(std::fs::metadata(path)).len(),
-            filename: filename,
+            size: try!(std::fs::metadata(path.as_ref())).len(),
+            filename: path.as_ref().file_name().unwrap().to_os_string(),
             pgpsig: pgpsig,
             md5sum: md5.result_str(),
             sha256sum: sha256.result_str(),
@@ -111,7 +111,7 @@ impl Package {
     pub fn replaces(&self) -> &Vec<String> {
         &self.pkginfo.replaces
     }
-    pub fn filename(&self) -> &str {
+    pub fn filename(&self) -> &std::ffi::OsStr {
         &self.filename
     }
     pub fn pkgname(&self) -> &str {
