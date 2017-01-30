@@ -10,7 +10,7 @@ license = "MIT"
 
 [dependencies]
 clap = "2.20"
-env_logger = "0.3"
+env_logger = "0.4"
 flate2 = "0.2"
 gpgme = "0.4"
 hyper = "0.10"
