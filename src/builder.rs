@@ -138,7 +138,7 @@ impl<'a> Builder<'a> {
             let dest = repo_dir.as_ref().join(entry.file_name());
             info!("Copy {} to {}", entry.path().display(), dest.display());
             try!(std::fs::copy(entry.path(), &dest));
-            if let Some(ref signer) = self.signer {
+            if let Some(signer) = self.signer {
                 let mut sig_dest = dest.clone().into_os_string();
                 sig_dest.push(".sig");
                 try!(signer.sign(&dest, sig_dest));

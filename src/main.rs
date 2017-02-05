@@ -245,7 +245,7 @@ fn repo_remove(args: &clap::ArgMatches) {
                                                  signer.as_ref());
 
     repository.load().unwrap();
-    repository.remove(&package_name);
+    repository.remove(package_name);
     repository.save(false).unwrap();
 }
 
@@ -269,7 +269,7 @@ fn files_remove(args: &clap::ArgMatches) {
                                 signer.as_ref());
 
     repository.load().unwrap();
-    repository.remove(&package_name);
+    repository.remove(package_name);
     repository.save(true).unwrap();
 }
 
@@ -347,7 +347,7 @@ fn omakase_remove(args: &clap::ArgMatches) {
     let repo_signer = repo_signer.as_ref();
     let s3 = config.s3.as_ref().map(|s3_config| guzuta::omakase::S3::new(s3_config));
 
-    for (arch, _) in &config.builds {
+    for arch in config.builds.keys() {
         let db_path = config.db_path(arch);
         let files_path = config.files_path(arch);
         let abs_path = config.abs_path(arch);
@@ -362,9 +362,9 @@ fn omakase_remove(args: &clap::ArgMatches) {
         db_repo.load().unwrap();
         files_repo.load().unwrap();
 
-        db_repo.remove(&package_name);
-        files_repo.remove(&package_name);
-        abs.remove(&package_name).unwrap();
+        db_repo.remove(package_name);
+        files_repo.remove(package_name);
+        abs.remove(package_name).unwrap();
         db_repo.save(false).unwrap();
         files_repo.save(true).unwrap();
 

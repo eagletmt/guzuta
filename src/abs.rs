@@ -115,7 +115,7 @@ impl<'a> Abs<'a> {
             try!(self.unarchive(root_dir.join(self.repo_name), path));
             return Ok(());
         }
-        return Err(Error::Custom("No source pakcage is generated"));
+        Err(Error::Custom("No source pakcage is generated"))
     }
 
     fn archive<P, Q>(&self, root_dir: P, abs_path: Q) -> Result<(), std::io::Error>

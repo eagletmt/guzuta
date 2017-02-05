@@ -94,11 +94,11 @@ impl<'a> Repository<'a> {
     pub fn new(path: std::path::PathBuf,
                signer: Option<&'a super::signer::Signer<'a>>)
                -> Repository {
-        return Repository {
+        Repository {
             path: path,
             signer: signer,
             entries: std::collections::HashMap::new(),
-        };
+        }
     }
 
     pub fn load(&mut self) -> Result<(), Error> {
@@ -157,8 +157,8 @@ impl<'a> Repository<'a> {
             }
         }
 
-        for (_, desc) in desc_entries.into_iter() {
-            let files = files_entries.remove(&desc.name).unwrap_or(vec![]);
+        for (_, desc) in desc_entries {
+            let files = files_entries.remove(&desc.name).unwrap_or_default();
             self.entries.insert(desc.name.to_owned(),
                                 PackageEntry {
                                     desc: desc,
@@ -212,7 +212,7 @@ impl<'a> Repository<'a> {
         let file = try!(std::fs::File::create(&tmp_path));
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
         let mut builder = tar::Builder::new(gz_writer);
-        for (_, package_entry) in self.entries.iter() {
+        for package_entry in self.entries.values() {
             let pathbuf = std::path::PathBuf::from(format!("{}-{}/",
                                                            package_entry.desc.name,
                                                            package_entry.desc.version));
@@ -251,7 +251,7 @@ impl<'a> Repository<'a> {
         let gz_writer = try!(builder.into_inner());
         try!(gz_writer.finish());
 
-        if let Some(ref signer) = self.signer {
+        if let Some(signer) = self.signer {
             let mut sig_path = self.path.clone().into_os_string();
             sig_path.push(".sig");
             try!(signer.sign(&tmp_path, sig_path));
@@ -362,7 +362,7 @@ impl<'a> Iterator for EachEntry<'a> {
                 return Some((self.key, line));
             }
         }
-        return None;
+        None
     }
 }
 
@@ -375,7 +375,7 @@ fn each_entry(body: &str) -> EachEntry {
 
 fn into_desc_file(package_entry: &PackageEntry) -> Vec<u8> {
     let mut buf = vec![];
-    let ref desc = package_entry.desc;
+    let desc = &package_entry.desc;
     desc_write_array(&mut buf, b"GROUPS", &desc.groups);
     desc_write_array(&mut buf, b"REPLACES", &desc.replaces);
     desc_write_os_str(&mut buf, b"FILENAME", &desc.filename);
@@ -399,10 +399,10 @@ fn into_desc_file(package_entry: &PackageEntry) -> Vec<u8> {
     desc_write_array(&mut buf, b"MAKEDEPENDS", &desc.makedepends);
     desc_write_array(&mut buf, b"CHECKDEPENDS", &desc.checkdepends);
     desc_write_array(&mut buf, b"OPTDEPENDS", &desc.optdepends);
-    return buf;
+    buf
 }
 
-fn desc_write_array(buf: &mut Vec<u8>, key: &[u8], xs: &Vec<String>) {
+fn desc_write_array(buf: &mut Vec<u8>, key: &[u8], xs: &[String]) {
     if !xs.is_empty() {
         buf.extend_from_slice(b"%");
         buf.extend_from_slice(key);
@@ -461,7 +461,7 @@ fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, Error> {
     }
 }
 
-fn into_files_file(files: &Vec<std::path::PathBuf>) -> Vec<u8> {
+fn into_files_file(files: &[std::path::PathBuf]) -> Vec<u8> {
     let mut buf = vec![];
     buf.extend_from_slice(b"%FILES%\n");
     for file in files {
@@ -470,5 +470,5 @@ fn into_files_file(files: &Vec<std::path::PathBuf>) -> Vec<u8> {
         buf.extend(file.as_os_str().as_bytes());
         buf.extend_from_slice(b"\n");
     }
-    return buf;
+    buf
 }

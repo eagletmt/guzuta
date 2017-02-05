@@ -26,7 +26,7 @@ pub struct Signer<'a> {
 
 impl<'a> Signer<'a> {
     pub fn new(key: &'a str) -> Signer {
-        return Signer { key: key };
+        Signer { key: key }
     }
 
     pub fn sign<P, Q>(&self, path: P, sig_path: Q) -> Result<(), Error>
