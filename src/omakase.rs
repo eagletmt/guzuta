@@ -31,14 +31,20 @@ pub struct S3Config {
 pub struct Region(rusoto::Region);
 
 impl serde::Deserialize for Region {
-    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: serde::Deserializer
     {
         struct Visitor;
         impl serde::de::Visitor for Visitor {
             type Value = Region;
 
-            fn visit_str<E>(&mut self, v: &str) -> Result<Self::Value, E>
+            fn expecting(&self,
+                         formatter: &mut std::fmt::Formatter)
+                         -> Result<(), std::fmt::Error> {
+                write!(formatter, "a valid AWS region name")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
                 where E: serde::de::Error
             {
                 use std::str::FromStr;
@@ -46,7 +52,10 @@ impl serde::Deserialize for Region {
 
                 match rusoto::Region::from_str(v) {
                     Ok(r) => Ok(Region(r)),
-                    Err(e) => Err(serde::de::Error::invalid_value(e.description())),
+                    Err(e) => {
+                        Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(v),
+                                                            &e.description()))
+                    }
                 }
             }
         }
