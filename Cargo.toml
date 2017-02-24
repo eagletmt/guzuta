@@ -15,7 +15,7 @@ flate2 = "0.2"
 gpgme = "0.5"
 hyper = "0.10"
 log = "0.3"
-rusoto = { version = "0.22", features = ["s3"] }
+rusoto = { version = "0.23", features = ["s3"] }
 rust-crypto = "0.2"
 rust-lzma = "0.2"
 rustc-serialize = "0.3"
