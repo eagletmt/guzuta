@@ -93,14 +93,16 @@ impl Package {
         }
 
         Ok(Package {
-            pkginfo: pkginfo,
-            size: try!(std::fs::metadata(path)).len(),
-            filename: path.file_name().unwrap().to_os_string(),
-            pgpsig: pgpsig,
-            md5sum: md5.result_str(),
-            sha256sum: sha256.result_str(),
-            files: files,
-        })
+               pkginfo: pkginfo,
+               size: try!(std::fs::metadata(path)).len(),
+               filename: path.file_name()
+                   .expect("Unable to find file_name from package path")
+                   .to_os_string(),
+               pgpsig: pgpsig,
+               md5sum: md5.result_str(),
+               sha256sum: sha256.result_str(),
+               files: files,
+           })
     }
 
     pub fn groups(&self) -> &Vec<String> {

@@ -101,6 +101,10 @@ impl<'a> Repository<'a> {
         }
     }
 
+    pub fn path(&self) -> &std::path::Path {
+        self.path.as_path()
+    }
+
     pub fn load(&mut self) -> Result<(), Error> {
         match std::fs::File::open(&self.path) {
             Ok(file) => self.load_from_file(file),
@@ -122,7 +126,7 @@ impl<'a> Repository<'a> {
         for entry_result in try!(tar_reader.entries()) {
             let mut entry = try!(entry_result);
             let pathbuf = try!(entry.path()).into_owned();
-            let pathname = pathbuf.to_str().unwrap();
+            let pathname = pathbuf.to_str().expect("Unable to convert PathBuf to str");
             match entry.header().entry_type() {
                 tar::EntryType::Regular => {
                     let mut splitn = pathname.splitn(2, '/');

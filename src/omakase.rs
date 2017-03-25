@@ -130,8 +130,8 @@ impl From<rusoto::s3::PutObjectError> for Error {
 impl S3 {
     pub fn new(config: &S3Config) -> Self {
         let Region(region) = config.region;
-        let client = rusoto::s3::S3Client::new(rusoto::default_tls_client().unwrap(),
-                                               rusoto::DefaultCredentialsProvider::new().unwrap(),
+        let client = rusoto::s3::S3Client::new(rusoto::default_tls_client().expect("Unable to create default TLS client for Rusoto"),
+                                               rusoto::DefaultCredentialsProvider::new().expect("Unable to create default credential provider for Rusoto"),
                                                region);
         S3 {
             client: client,

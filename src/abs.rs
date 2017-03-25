@@ -31,6 +31,10 @@ impl<'a> Abs<'a> {
         }
     }
 
+    pub fn path(&self) -> &std::path::Path {
+        self.abs_path.as_path()
+    }
+
     pub fn add<P, Q>(&self, package_dir: P, srcdest: Q) -> Result<(), Error>
         where P: AsRef<std::path::Path>,
               Q: AsRef<std::path::Path>
