@@ -36,7 +36,6 @@ See also https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_
 
 ```
 % sudo mkarchroot -C /path/to/pacman.conf -M /path/to/makepkg.conf /path/to/chroot-x86_64/root base base-devel
-% echo 'PACKAGER="Your Name <yourname@example..com>" | sudo tee /path/to/chroot-x86_64/root/etc/makepkg.conf
 % cat > .guzuta.yml
 name: foo
 package_key: C48DBD97
