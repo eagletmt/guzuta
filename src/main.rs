@@ -336,6 +336,8 @@ fn omakase_build(args: &clap::ArgMatches) {
         let abs_path = config.abs_path(arch);
         let package_dir = config.package_dir(package_name);
 
+        std::fs::create_dir_all(repo_dir.as_path()).expect(&format!("Unable to create directories {}", repo_dir.as_path().display()));
+
         if let Some(ref s3) = s3 {
             s3.download_repository(&config, arch).expect("Unable to download files from S3");
         }
@@ -347,7 +349,6 @@ fn omakase_build(args: &clap::ArgMatches) {
                                        db_repo.path().display()));
         files_repo.load().expect(&format!("Unable to load files repository from {}",
                                           files_repo.path().display()));
-        std::fs::create_dir_all(repo_dir.as_path()).expect(&format!("Unable to create directories {}", repo_dir.as_path().display()));
 
         let package_paths = builder.build_package(package_dir.as_path(), repo_dir, &chroot)
             .expect(&format!("Unable to build package in {}",
