@@ -15,9 +15,7 @@ flate2 = "0.2"
 gpgme = "0.5"
 hyper = "0.10"
 log = "0.3"
-# Use git until the next release.
-# https://github.com/rusoto/rusoto/pull/569
-rusoto = { git = "https://github.com/rusoto/rusoto", rev = "9d442b0e4c7a7c0377c022fea990c44636af6aca", features = ["s3"] }
+rusoto = { version = "0.24", features = ["s3"] }
 rust-crypto = "0.2"
 rust-lzma = "0.2"
 rustc-serialize = "0.3"
