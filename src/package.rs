@@ -1,6 +1,6 @@
+extern crate base64;
 extern crate crypto;
 extern crate lzma;
-extern crate rustc_serialize;
 extern crate std;
 extern crate tar;
 
@@ -65,11 +65,9 @@ impl Package {
         let mut sig_path = path.as_os_str().to_os_string();
         sig_path.push(".sig");
         let pgpsig = if let Ok(mut f) = std::fs::File::open(sig_path) {
-            use rustc_serialize::base64::ToBase64;
-
             let mut buf = vec![];
             try!(f.read_to_end(&mut buf));
-            buf.to_base64(rustc_serialize::base64::STANDARD)
+            base64::encode(&buf)
         } else {
             "".to_owned()
         };

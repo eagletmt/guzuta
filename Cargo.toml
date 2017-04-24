@@ -9,6 +9,7 @@ readme = "README.md"
 license = "MIT"
 
 [dependencies]
+base64 = "0.5"
 clap = "2.22"
 env_logger = "0.4"
 flate2 = "0.2"
@@ -18,7 +19,6 @@ log = "0.3"
 rusoto = { version = "0.24", features = ["s3"] }
 rust-crypto = "0.2"
 rust-lzma = "0.2"
-rustc-serialize = "0.3"
 serde = "0.9"
 serde_derive = "0.9"
 serde_yaml = "0.6"
