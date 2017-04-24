@@ -71,7 +71,9 @@ impl Config {
     }
 
     pub fn repo_dir(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
-        std::path::PathBuf::from(&self.name).join("os").join(format!("{}", arch))
+        std::path::PathBuf::from(&self.name)
+            .join("os")
+            .join(format!("{}", arch))
     }
 
     pub fn db_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {

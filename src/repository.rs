@@ -126,7 +126,9 @@ impl<'a> Repository<'a> {
         for entry_result in try!(tar_reader.entries()) {
             let mut entry = try!(entry_result);
             let pathbuf = try!(entry.path()).into_owned();
-            let pathname = pathbuf.to_str().expect("Unable to convert PathBuf to str");
+            let pathname = pathbuf
+                .to_str()
+                .expect("Unable to convert PathBuf to str");
             match entry.header().entry_type() {
                 tar::EntryType::Regular => {
                     let mut splitn = pathname.splitn(2, '/');
@@ -163,11 +165,12 @@ impl<'a> Repository<'a> {
 
         for (_, desc) in desc_entries {
             let files = files_entries.remove(&desc.name).unwrap_or_default();
-            self.entries.insert(desc.name.to_owned(),
-                                PackageEntry {
-                                    desc: desc,
-                                    files: files,
-                                });
+            self.entries
+                .insert(desc.name.to_owned(),
+                        PackageEntry {
+                            desc: desc,
+                            files: files,
+                        });
         }
         Ok(())
     }
@@ -199,11 +202,12 @@ impl<'a> Repository<'a> {
             checkdepends: package.checkdepends().to_owned(),
             optdepends: package.optdepends().to_owned(),
         };
-        self.entries.insert(desc.name.to_owned(),
-                            PackageEntry {
-                                desc: desc,
-                                files: package.files().to_owned(),
-                            });
+        self.entries
+            .insert(desc.name.to_owned(),
+                    PackageEntry {
+                        desc: desc,
+                        files: package.files().to_owned(),
+                    });
     }
 
     pub fn remove(&mut self, package_name: &str) {

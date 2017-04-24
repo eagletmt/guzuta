@@ -147,7 +147,8 @@ impl<'a> Abs<'a> {
     {
         let root_dir = root_dir.as_ref();
         let path = path.as_ref();
-        let path_in_archive = path.strip_prefix(root_dir).expect("Failed to strip prefix");
+        let path_in_archive = path.strip_prefix(root_dir)
+            .expect("Failed to strip prefix");
         if path.is_dir() {
             if !path_in_archive.as_os_str().is_empty() {
                 let mut path_in_archive = path_in_archive.to_path_buf().into_os_string();
