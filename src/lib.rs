@@ -4,7 +4,7 @@ extern crate flate2;
 extern crate gpgme;
 extern crate hyper;
 extern crate lzma;
-extern crate rusoto;
+extern crate rusoto_s3;
 extern crate serde;
 extern crate serde_yaml;
 extern crate tar;

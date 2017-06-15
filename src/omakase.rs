@@ -1,5 +1,6 @@
 extern crate hyper;
-extern crate rusoto;
+extern crate rusoto_core;
+extern crate rusoto_s3;
 extern crate serde;
 extern crate serde_yaml;
 extern crate std;
@@ -28,7 +29,7 @@ pub struct S3Config {
 }
 
 #[derive(Debug)]
-pub struct Region(rusoto::Region);
+pub struct Region(rusoto_core::Region);
 
 impl<'de> serde::Deserialize<'de> for Region {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -50,7 +51,7 @@ impl<'de> serde::Deserialize<'de> for Region {
                 use std::str::FromStr;
                 use std::error::Error;
 
-                match rusoto::Region::from_str(v) {
+                match rusoto_core::Region::from_str(v) {
                     Ok(r) => Ok(Region(r)),
                     Err(e) => {
                         Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(v),
@@ -100,15 +101,15 @@ impl Config {
 }
 
 pub struct S3 {
-    client: rusoto::s3::S3Client<rusoto::DefaultCredentialsProvider, hyper::client::Client>,
+    client: rusoto_s3::S3Client<rusoto_core::DefaultCredentialsProvider, hyper::client::Client>,
     bucket: String,
 }
 
 #[derive(Debug)]
 pub enum Error {
     Io(std::io::Error),
-    S3GetObject(rusoto::s3::GetObjectError),
-    S3PutObject(rusoto::s3::PutObjectError),
+    S3GetObject(rusoto_s3::GetObjectError),
+    S3PutObject(rusoto_s3::PutObjectError),
 }
 
 impl From<std::io::Error> for Error {
@@ -117,14 +118,14 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl From<rusoto::s3::GetObjectError> for Error {
-    fn from(e: rusoto::s3::GetObjectError) -> Self {
+impl From<rusoto_s3::GetObjectError> for Error {
+    fn from(e: rusoto_s3::GetObjectError) -> Self {
         Error::S3GetObject(e)
     }
 }
 
-impl From<rusoto::s3::PutObjectError> for Error {
-    fn from(e: rusoto::s3::PutObjectError) -> Self {
+impl From<rusoto_s3::PutObjectError> for Error {
+    fn from(e: rusoto_s3::PutObjectError) -> Self {
         Error::S3PutObject(e)
     }
 }
@@ -132,8 +133,8 @@ impl From<rusoto::s3::PutObjectError> for Error {
 impl S3 {
     pub fn new(config: &S3Config) -> Self {
         let Region(region) = config.region;
-        let client = rusoto::s3::S3Client::new(rusoto::default_tls_client().expect("Unable to create default TLS client for Rusoto"),
-                                               rusoto::DefaultCredentialsProvider::new().expect("Unable to create default credential provider for Rusoto"),
+        let client = rusoto_s3::S3Client::new(rusoto_core::default_tls_client().expect("Unable to create default TLS client for Rusoto"),
+                                               rusoto_core::DefaultCredentialsProvider::new().expect("Unable to create default credential provider for Rusoto"),
                                                region);
         S3 {
             client: client,
@@ -184,11 +185,12 @@ impl S3 {
     fn get<P>(&self, path: P) -> Result<(), Error>
         where P: AsRef<std::path::Path>
     {
+        use rusoto_s3::S3;
         use std::io::Write;
 
         let path = path.as_ref();
         let mut file = try!(std::fs::File::create(path));
-        let mut request = rusoto::s3::GetObjectRequest::default();
+        let mut request = rusoto_s3::GetObjectRequest::default();
         request.bucket = self.bucket.to_owned();
         request.key = path.to_string_lossy().into_owned();
         // FIXME: https://github.com/rusoto/rusoto/issues/545
@@ -203,7 +205,7 @@ impl S3 {
                 }
                 Ok(())
             }
-            Err(rusoto::s3::GetObjectError::NoSuchKey(_)) => Ok(()),
+            Err(rusoto_s3::GetObjectError::NoSuchKey(_)) => Ok(()),
             Err(e) => try!(Err(e)),
         }
     }
@@ -211,10 +213,11 @@ impl S3 {
     fn put<P>(&self, path: P, content_type: &str) -> Result<(), Error>
         where P: AsRef<std::path::Path>
     {
+        use rusoto_s3::S3;
         use std::io::Read;
 
         let path = path.as_ref();
-        let mut request = rusoto::s3::PutObjectRequest::default();
+        let mut request = rusoto_s3::PutObjectRequest::default();
         request.bucket = self.bucket.to_owned();
         request.key = path.to_string_lossy().into_owned();
         request.content_type = Some(content_type.to_owned());
