@@ -33,20 +33,23 @@ pub struct Region(rusoto_core::Region);
 
 impl<'de> serde::Deserialize<'de> for Region {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer<'de>
+    where
+        D: serde::Deserializer<'de>,
     {
         struct Visitor;
         impl<'de> serde::de::Visitor<'de> for Visitor {
             type Value = Region;
 
-            fn expecting(&self,
-                         formatter: &mut std::fmt::Formatter)
-                         -> Result<(), std::fmt::Error> {
+            fn expecting(
+                &self,
+                formatter: &mut std::fmt::Formatter,
+            ) -> Result<(), std::fmt::Error> {
                 write!(formatter, "a valid AWS region name")
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-                where E: serde::de::Error
+            where
+                E: serde::de::Error,
             {
                 use std::str::FromStr;
                 use std::error::Error;
@@ -54,8 +57,10 @@ impl<'de> serde::Deserialize<'de> for Region {
                 match rusoto_core::Region::from_str(v) {
                     Ok(r) => Ok(Region(r)),
                     Err(e) => {
-                        Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(v),
-                                                            &e.description()))
+                        Err(serde::de::Error::invalid_value(
+                            serde::de::Unexpected::Str(v),
+                            &e.description(),
+                        ))
                     }
                 }
             }
@@ -66,15 +71,19 @@ impl<'de> serde::Deserialize<'de> for Region {
 
 impl Config {
     pub fn from_reader<R>(reader: R) -> serde_yaml::Result<Self>
-        where R: std::io::Read
+    where
+        R: std::io::Read,
     {
         serde_yaml::from_reader(reader)
     }
 
     pub fn repo_dir(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
-        std::path::PathBuf::from(&self.name)
-            .join("os")
-            .join(format!("{}", arch))
+        std::path::PathBuf::from(&self.name).join("os").join(
+            format!(
+                "{}",
+                arch
+            ),
+        )
     }
 
     pub fn db_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
@@ -132,31 +141,40 @@ impl From<rusoto_s3::PutObjectError> for Error {
 
 impl S3 {
     pub fn new(config: &S3Config) -> Self {
-        let Region(region) = config.region;
-        let client = rusoto_s3::S3Client::new(rusoto_core::default_tls_client().expect("Unable to create default TLS client for Rusoto"),
-                                               rusoto_core::DefaultCredentialsProvider::new().expect("Unable to create default credential provider for Rusoto"),
-                                               region);
+        let Region(ref region) = config.region;
+        let client = rusoto_s3::S3Client::new(
+            rusoto_core::default_tls_client().expect(
+                "Unable to create default TLS client for Rusoto",
+            ),
+            rusoto_core::DefaultCredentialsProvider::new().expect(
+                "Unable to create default credential provider for Rusoto",
+            ),
+            region.clone(),
+        );
         S3 {
             client: client,
             bucket: config.bucket.to_owned(),
         }
     }
 
-    pub fn download_repository(&self,
-                               config: &Config,
-                               arch: &super::builder::Arch)
-                               -> Result<(), Error> {
+    pub fn download_repository(
+        &self,
+        config: &Config,
+        arch: &super::builder::Arch,
+    ) -> Result<(), Error> {
         try!(self.get(config.db_path(arch)));
         try!(self.get(config.files_path(arch)));
         self.get(config.abs_path(arch))
     }
 
-    pub fn upload_repository<P>(&self,
-                                config: &Config,
-                                arch: &super::builder::Arch,
-                                package_paths: &[P])
-                                -> Result<(), Error>
-        where P: AsRef<std::path::Path>
+    pub fn upload_repository<P>(
+        &self,
+        config: &Config,
+        arch: &super::builder::Arch,
+        package_paths: &[P],
+    ) -> Result<(), Error>
+    where
+        P: AsRef<std::path::Path>,
     {
         const XZ_MIME_TYPE: &'static str = "application/x-xz";
         const SIG_MIME_TYPE: &'static str = "application/pgp-signature";
@@ -183,25 +201,30 @@ impl S3 {
     }
 
     fn get<P>(&self, path: P) -> Result<(), Error>
-        where P: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
     {
         use rusoto_s3::S3;
         use std::io::Write;
 
         let path = path.as_ref();
         let mut file = try!(std::fs::File::create(path));
-        let mut request = rusoto_s3::GetObjectRequest::default();
-        request.bucket = self.bucket.to_owned();
-        request.key = path.to_string_lossy().into_owned();
-        // FIXME: https://github.com/rusoto/rusoto/issues/545
-        request.response_content_type = Some("application/octet-stream".to_owned());
+        let request = rusoto_s3::GetObjectRequest {
+            bucket: self.bucket.to_owned(),
+            key: path.to_string_lossy().into_owned(),
+            ..rusoto_s3::GetObjectRequest::default()
+        };
         println!("Download {}", path.display());
-        // FIXME: need streaming for large files
-        // https://github.com/rusoto/rusoto/issues/481
         match self.client.get_object(&request) {
             Ok(output) => {
-                if let Some(body) = output.body {
-                    try!(file.write_all(&body));
+                if let Some(mut body) = output.body {
+                    let mut buf = [0; 4096];
+                    while let Ok(len) = body.read(&mut buf) {
+                        if len == 0 {
+                            break;
+                        }
+                        try!(file.write(&buf[..len]));
+                    }
                 }
                 Ok(())
             }
@@ -211,7 +234,8 @@ impl S3 {
     }
 
     fn put<P>(&self, path: P, content_type: &str) -> Result<(), Error>
-        where P: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
     {
         use rusoto_s3::S3;
         use std::io::Read;
