@@ -31,6 +31,14 @@ pub enum Arch {
     I686,
     #[serde(rename = "x86_64")]
     X86_64,
+    #[serde(rename = "arm")]
+    ARM,
+    #[serde(rename = "armv6h")]
+    ARMV6H,
+    #[serde(rename = "armv7h")]
+    ARMV7H,
+    #[serde(rename = "aarch64")]
+    AARCH64,
 }
 
 impl std::fmt::Display for Arch {
@@ -38,6 +46,10 @@ impl std::fmt::Display for Arch {
         match *self {
             Arch::I686 => "i686".fmt(f),
             Arch::X86_64 => "x86_64".fmt(f),
+            Arch::ARM => "arm".fmt(f),
+            Arch::ARMV6H => "armv6h".fmt(f),
+            Arch::ARMV7H => "armv7h".fmt(f),
+            Arch::AARCH64 => "aarch64".fmt(f),
         }
     }
 }

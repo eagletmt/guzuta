@@ -189,6 +189,10 @@ fn build(args: &clap::ArgMatches) {
               .expect("Unable to get --arch option") {
         "i686" => guzuta::Arch::I686,
         "x86_64" => guzuta::Arch::X86_64,
+        "arm" => guzuta::Arch::ARM,
+        "armv6h" => guzuta::Arch::ARMV6H,
+        "armv7h" => guzuta::Arch::ARMV7H,
+        "aarch64" => guzuta::Arch::AARCH64,
         arch => panic!("Unknown architecture: {}", arch),
     };
     let chroot = guzuta::ChrootHelper::new(args.value_of("chroot-dir")
