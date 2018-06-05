@@ -120,7 +120,7 @@ impl<'a> Repository<'a> {
     }
 
     fn load_from_file(&mut self, file: std::fs::File) -> Result<(), Error> {
-        let gz_reader = try!(flate2::read::GzDecoder::new(file));
+        let gz_reader = flate2::read::GzDecoder::new(file);
         let mut tar_reader = tar::Archive::new(gz_reader);
         let mut desc_entries = std::collections::HashMap::new();
         let mut files_entries = std::collections::HashMap::new();
@@ -219,7 +219,7 @@ impl<'a> Repository<'a> {
         let mut tmp_path = self.path.clone().into_os_string();
         tmp_path.push(".progress");
         let file = try!(std::fs::File::create(&tmp_path));
-        let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
+        let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::default());
         let mut builder = tar::Builder::new(gz_writer);
         for package_entry in self.entries.values() {
             let pathbuf = std::path::PathBuf::from(format!(

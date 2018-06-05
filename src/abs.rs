@@ -81,7 +81,7 @@ impl<'a> Abs<'a> {
         P: AsRef<std::path::Path>,
         R: std::io::Read,
     {
-        let gz_reader = try!(flate2::read::GzDecoder::new(abs_file));
+        let gz_reader = flate2::read::GzDecoder::new(abs_file);
         let mut tar_reader = tar::Archive::new(gz_reader);
         try!(tar_reader.unpack(root_dir));
         Ok(())
@@ -138,7 +138,7 @@ impl<'a> Abs<'a> {
     {
         let root_dir = root_dir.as_ref();
         let file = try!(std::fs::File::create(abs_path.as_ref()));
-        let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
+        let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::default());
         let mut builder = tar::Builder::new(gz_writer);
         try!(self.archive_path(&mut builder, root_dir, root_dir));
         let gz_writer = try!(builder.into_inner());
