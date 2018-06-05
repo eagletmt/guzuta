@@ -4,7 +4,7 @@ extern crate env_logger;
 extern crate guzuta;
 
 fn main() {
-    env_logger::init().expect("Unable to init logger");
+    env_logger::init();
 
     let app = clap::App::new("guzuta")
         .version(crate_version!())
