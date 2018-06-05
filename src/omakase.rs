@@ -1,4 +1,4 @@
-extern crate hyper;
+extern crate futures;
 extern crate rusoto_core;
 extern crate rusoto_s3;
 extern crate serde;
@@ -105,13 +105,17 @@ impl Config {
 }
 
 pub struct S3 {
-    client: rusoto_s3::S3Client<rusoto_core::DefaultCredentialsProvider, hyper::client::Client>,
+    client: rusoto_s3::S3Client<
+        rusoto_core::reactor::CredentialsProvider,
+        rusoto_core::reactor::RequestDispatcher,
+    >,
     bucket: String,
 }
 
 #[derive(Debug)]
 pub enum Error {
     Io(std::io::Error),
+    HttpDispatch(rusoto_core::HttpDispatchError),
     S3GetObject(rusoto_s3::GetObjectError),
     S3PutObject(rusoto_s3::PutObjectError),
 }
@@ -119,6 +123,12 @@ pub enum Error {
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Error::Io(e)
+    }
+}
+
+impl From<rusoto_core::HttpDispatchError> for Error {
+    fn from(e: rusoto_core::HttpDispatchError) -> Self {
+        Error::HttpDispatch(e)
     }
 }
 
@@ -137,13 +147,7 @@ impl From<rusoto_s3::PutObjectError> for Error {
 impl S3 {
     pub fn new(config: &S3Config) -> Self {
         let Region(ref region) = config.region;
-        let client = rusoto_s3::S3Client::new(
-            rusoto_core::default_tls_client()
-                .expect("Unable to create default TLS client for Rusoto"),
-            rusoto_core::DefaultCredentialsProvider::new()
-                .expect("Unable to create default credential provider for Rusoto"),
-            region.clone(),
-        );
+        let client = rusoto_s3::S3Client::simple(region.clone());
         S3 {
             client: client,
             bucket: config.bucket.to_owned(),
@@ -208,16 +212,15 @@ impl S3 {
             ..rusoto_s3::GetObjectRequest::default()
         };
         println!("Download {}", path.display());
-        match self.client.get_object(&request) {
+        match self.client.get_object(&request).sync() {
             Ok(output) => {
+                use futures::Future;
                 if let Some(mut body) = output.body {
-                    let mut buf = [0; 4096];
-                    while let Ok(len) = body.read(&mut buf) {
-                        if len == 0 {
-                            break;
-                        }
-                        try!(file.write(&buf[..len]));
-                    }
+                    use futures::Stream;
+                    body.for_each(|buf| {
+                        file.write(&buf)?;
+                        Ok(())
+                    }).wait()?;
                 }
                 Ok(())
             }
@@ -245,7 +248,7 @@ impl S3 {
         try!(file.read_to_end(&mut body));
         request.body = Some(body);
         println!("Upload {}", path.display());
-        try!(self.client.put_object(&request));
+        try!(self.client.put_object(&request).sync());
         Ok(())
     }
 }

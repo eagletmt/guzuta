@@ -2,7 +2,7 @@ extern crate base64;
 extern crate crypto;
 extern crate flate2;
 extern crate gpgme;
-extern crate hyper;
+extern crate futures;
 extern crate lzma;
 extern crate rusoto_s3;
 extern crate serde;
