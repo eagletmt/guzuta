@@ -58,7 +58,8 @@ pub struct Package {
 
 impl Package {
     pub fn load<P>(path: P) -> Result<Package, Error>
-        where P: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
     {
         let path = path.as_ref();
         let (pkginfo, files) = try!(PkgInfo::load(path));
@@ -91,16 +92,16 @@ impl Package {
         }
 
         Ok(Package {
-               pkginfo: pkginfo,
-               size: try!(std::fs::metadata(path)).len(),
-               filename: path.file_name()
-                   .expect("Unable to find file_name from package path")
-                   .to_os_string(),
-               pgpsig: pgpsig,
-               md5sum: md5.result_str(),
-               sha256sum: sha256.result_str(),
-               files: files,
-           })
+            pkginfo: pkginfo,
+            size: try!(std::fs::metadata(path)).len(),
+            filename: path.file_name()
+                .expect("Unable to find file_name from package path")
+                .to_os_string(),
+            pgpsig: pgpsig,
+            md5sum: md5.result_str(),
+            sha256sum: sha256.result_str(),
+            files: files,
+        })
     }
 
     pub fn groups(&self) -> &Vec<String> {
@@ -207,7 +208,8 @@ pub struct PkgInfo {
 
 impl PkgInfo {
     fn load<P>(path: P) -> Result<(Self, Vec<std::path::PathBuf>), Error>
-        where P: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
     {
         let file = try!(std::fs::File::open(path));
         let xz_reader = try!(lzma::LzmaReader::new_decompressor(file));
@@ -217,8 +219,9 @@ impl PkgInfo {
         for entry_result in try!(tar_reader.entries()) {
             let mut entry = try!(entry_result);
             let path = try!(entry.path()).into_owned();
-            if path.as_os_str() == ".PKGINFO" &&
-               entry.header().entry_type() == tar::EntryType::Regular {
+            if path.as_os_str() == ".PKGINFO"
+                && entry.header().entry_type() == tar::EntryType::Regular
+            {
                 let mut body = String::new();
                 try!(entry.read_to_string(&mut body));
                 pkginfo = Some(try!(parse_pkginfo(&body)));
@@ -268,7 +271,12 @@ fn parse_pkginfo(body: &str) -> Result<PkgInfo, Error> {
                 "provides" => info.provides.push(val.to_owned()),
                 "backup" => info.backups.push(val.to_owned()),
                 "replaces" => info.replaces.push(val.to_owned()),
-                _ => return Err(Error::from(format!("Unknown PKGINFO entry '{}': {}", key, line))),
+                _ => {
+                    return Err(Error::from(format!(
+                        "Unknown PKGINFO entry '{}': {}",
+                        key, line
+                    )))
+                }
             }
         } else {
             return Err(Error::from(format!("Invalid line: {}", line)));

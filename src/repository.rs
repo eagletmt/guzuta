@@ -91,9 +91,10 @@ pub struct Repository<'a> {
 }
 
 impl<'a> Repository<'a> {
-    pub fn new(path: std::path::PathBuf,
-               signer: Option<&'a super::signer::Signer<'a>>)
-               -> Repository {
+    pub fn new(
+        path: std::path::PathBuf,
+        signer: Option<&'a super::signer::Signer<'a>>,
+    ) -> Repository {
         Repository {
             path: path,
             signer: signer,
@@ -163,12 +164,13 @@ impl<'a> Repository<'a> {
 
         for (_, desc) in desc_entries {
             let files = files_entries.remove(&desc.name).unwrap_or_default();
-            self.entries
-                .insert(desc.name.to_owned(),
-                        PackageEntry {
-                            desc: desc,
-                            files: files,
-                        });
+            self.entries.insert(
+                desc.name.to_owned(),
+                PackageEntry {
+                    desc: desc,
+                    files: files,
+                },
+            );
         }
         Ok(())
     }
@@ -200,12 +202,13 @@ impl<'a> Repository<'a> {
             checkdepends: package.checkdepends().to_owned(),
             optdepends: package.optdepends().to_owned(),
         };
-        self.entries
-            .insert(desc.name.to_owned(),
-                    PackageEntry {
-                        desc: desc,
-                        files: package.files().to_owned(),
-                    });
+        self.entries.insert(
+            desc.name.to_owned(),
+            PackageEntry {
+                desc: desc,
+                files: package.files().to_owned(),
+            },
+        );
     }
 
     pub fn remove(&mut self, package_name: &str) {
@@ -219,9 +222,10 @@ impl<'a> Repository<'a> {
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::Default);
         let mut builder = tar::Builder::new(gz_writer);
         for package_entry in self.entries.values() {
-            let pathbuf = std::path::PathBuf::from(format!("{}-{}/",
-                                                           package_entry.desc.name,
-                                                           package_entry.desc.version));
+            let pathbuf = std::path::PathBuf::from(format!(
+                "{}-{}/",
+                package_entry.desc.name, package_entry.desc.version
+            ));
             {
                 let mut dir_header = tar::Header::new_gnu();
                 dir_header.set_entry_type(tar::EntryType::Directory);

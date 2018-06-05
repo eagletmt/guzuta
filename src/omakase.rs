@@ -51,17 +51,15 @@ impl<'de> serde::Deserialize<'de> for Region {
             where
                 E: serde::de::Error,
             {
-                use std::str::FromStr;
                 use std::error::Error;
+                use std::str::FromStr;
 
                 match rusoto_core::Region::from_str(v) {
                     Ok(r) => Ok(Region(r)),
-                    Err(e) => {
-                        Err(serde::de::Error::invalid_value(
-                            serde::de::Unexpected::Str(v),
-                            &e.description(),
-                        ))
-                    }
+                    Err(e) => Err(serde::de::Error::invalid_value(
+                        serde::de::Unexpected::Str(v),
+                        &e.description(),
+                    )),
                 }
             }
         }
@@ -78,12 +76,9 @@ impl Config {
     }
 
     pub fn repo_dir(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
-        std::path::PathBuf::from(&self.name).join("os").join(
-            format!(
-                "{}",
-                arch
-            ),
-        )
+        std::path::PathBuf::from(&self.name)
+            .join("os")
+            .join(format!("{}", arch))
     }
 
     pub fn db_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
@@ -143,12 +138,10 @@ impl S3 {
     pub fn new(config: &S3Config) -> Self {
         let Region(ref region) = config.region;
         let client = rusoto_s3::S3Client::new(
-            rusoto_core::default_tls_client().expect(
-                "Unable to create default TLS client for Rusoto",
-            ),
-            rusoto_core::DefaultCredentialsProvider::new().expect(
-                "Unable to create default credential provider for Rusoto",
-            ),
+            rusoto_core::default_tls_client()
+                .expect("Unable to create default TLS client for Rusoto"),
+            rusoto_core::DefaultCredentialsProvider::new()
+                .expect("Unable to create default credential provider for Rusoto"),
             region.clone(),
         );
         S3 {

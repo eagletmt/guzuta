@@ -68,16 +68,18 @@ impl<'a> ChrootHelper<'a> {
         }
     }
 
-    pub fn makechrootpkg<P, Q, R, S>(&self,
-                                     package_dir: P,
-                                     srcdest: Q,
-                                     pkgdest: R,
-                                     logdest: S)
-                                     -> Result<(), Error>
-        where P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>,
-              R: AsRef<std::path::Path>,
-              S: AsRef<std::path::Path>
+    pub fn makechrootpkg<P, Q, R, S>(
+        &self,
+        package_dir: P,
+        srcdest: Q,
+        pkgdest: R,
+        logdest: S,
+    ) -> Result<(), Error>
+    where
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
+        R: AsRef<std::path::Path>,
+        S: AsRef<std::path::Path>,
     {
         let current_dir_buf = try!(std::env::current_dir());
         let current_dir = current_dir_buf.as_path();
@@ -115,10 +117,11 @@ pub struct Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
-    pub fn new(signer: Option<&'a super::signer::Signer<'a>>,
-               srcdest: &'a str,
-               logdest: &'a str)
-               -> Self {
+    pub fn new(
+        signer: Option<&'a super::signer::Signer<'a>>,
+        srcdest: &'a str,
+        logdest: &'a str,
+    ) -> Self {
         Builder {
             signer: signer,
             srcdest: srcdest,
@@ -126,13 +129,15 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn build_package<P, Q>(&self,
-                               package_dir: P,
-                               repo_dir: Q,
-                               chroot_helper: &ChrootHelper)
-                               -> Result<Vec<std::path::PathBuf>, Error>
-        where P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>
+    pub fn build_package<P, Q>(
+        &self,
+        package_dir: P,
+        repo_dir: Q,
+        chroot_helper: &ChrootHelper,
+    ) -> Result<Vec<std::path::PathBuf>, Error>
+    where
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
     {
         let package_dir = package_dir.as_ref();
         let tempdir = try!(tempdir::TempDir::new("guzuta-pkgdest"));

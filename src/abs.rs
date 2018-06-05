@@ -23,7 +23,8 @@ pub struct Abs<'a> {
 
 impl<'a> Abs<'a> {
     pub fn new<P>(repo_name: &'a str, abs_path: P) -> Self
-        where P: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
     {
         Abs {
             repo_name: repo_name,
@@ -36,8 +37,9 @@ impl<'a> Abs<'a> {
     }
 
     pub fn add<P, Q>(&self, package_dir: P, srcdest: Q) -> Result<(), Error>
-        where P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
     {
         let root = try!(tempdir::TempDir::new("guzuta-abs-root"));
         let root = root.as_ref();
@@ -50,14 +52,17 @@ impl<'a> Abs<'a> {
     pub fn remove(&self, package_name: &str) -> Result<(), Error> {
         let root = try!(tempdir::TempDir::new("guzuta-abs-root"));
         try!(self.unarchive(root.as_ref(), self.abs_path.as_path()));
-        try!(std::fs::remove_dir_all(root.path().join(self.repo_name).join(package_name)));
+        try!(std::fs::remove_dir_all(
+            root.path().join(self.repo_name).join(package_name)
+        ));
         try!(self.archive(root, self.abs_path.as_path()));
         Ok(())
     }
 
     fn unarchive<P, Q>(&self, root_dir: P, abs_path: Q) -> Result<(), std::io::Error>
-        where P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
     {
         match std::fs::File::open(abs_path) {
             Ok(file) => self.unarchive_file(root_dir, file),
@@ -72,8 +77,9 @@ impl<'a> Abs<'a> {
     }
 
     fn unarchive_file<P, R>(&self, root_dir: P, abs_file: R) -> Result<(), std::io::Error>
-        where P: AsRef<std::path::Path>,
-              R: std::io::Read
+    where
+        P: AsRef<std::path::Path>,
+        R: std::io::Read,
     {
         let gz_reader = try!(flate2::read::GzDecoder::new(abs_file));
         let mut tar_reader = tar::Archive::new(gz_reader);
@@ -82,9 +88,10 @@ impl<'a> Abs<'a> {
     }
 
     fn add_srcpkg<P, Q, R>(&self, root_dir: P, package_dir: Q, srcdest: R) -> Result<(), Error>
-        where P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>,
-              R: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
+        R: AsRef<std::path::Path>,
     {
         let package_dir = package_dir.as_ref();
         let root_dir = root_dir.as_ref();
@@ -113,9 +120,11 @@ impl<'a> Abs<'a> {
                 try!(std::fs::remove_file(symlink_source_package_path));
             }
             let path = entry.path();
-            info!("Unarchive source package {} into {}",
-                  path.display(),
-                  root_dir.display());
+            info!(
+                "Unarchive source package {} into {}",
+                path.display(),
+                root_dir.display()
+            );
             try!(self.unarchive(root_dir.join(self.repo_name), path));
             return Ok(());
         }
@@ -123,8 +132,9 @@ impl<'a> Abs<'a> {
     }
 
     fn archive<P, Q>(&self, root_dir: P, abs_path: Q) -> Result<(), std::io::Error>
-        where P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
     {
         let root_dir = root_dir.as_ref();
         let file = try!(std::fs::File::create(abs_path.as_ref()));
@@ -136,14 +146,16 @@ impl<'a> Abs<'a> {
         Ok(())
     }
 
-    fn archive_path<W, P, Q>(&self,
-                             mut builder: &mut tar::Builder<W>,
-                             root_dir: P,
-                             path: Q)
-                             -> Result<(), std::io::Error>
-        where W: std::io::Write,
-              P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>
+    fn archive_path<W, P, Q>(
+        &self,
+        mut builder: &mut tar::Builder<W>,
+        root_dir: P,
+        path: Q,
+    ) -> Result<(), std::io::Error>
+    where
+        W: std::io::Write,
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
     {
         let root_dir = root_dir.as_ref();
         let path = path.as_ref();

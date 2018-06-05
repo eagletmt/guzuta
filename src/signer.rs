@@ -36,8 +36,9 @@ impl<'a> Signer<'a> {
     }
 
     pub fn sign<P, Q>(&self, path: P, sig_path: Q) -> Result<(), Error>
-        where P: AsRef<std::path::Path>,
-              Q: AsRef<std::path::Path>
+    where
+        P: AsRef<std::path::Path>,
+        Q: AsRef<std::path::Path>,
     {
         let mut ctx = try!(gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp));
         let key = try!(ctx.find_secret_key(self.key));
