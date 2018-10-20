@@ -105,10 +105,7 @@ impl Config {
 }
 
 pub struct S3 {
-    client: rusoto_s3::S3Client<
-        rusoto_core::reactor::CredentialsProvider,
-        rusoto_core::reactor::RequestDispatcher,
-    >,
+    client: rusoto_s3::S3Client,
     bucket: String,
 }
 
@@ -147,7 +144,7 @@ impl From<rusoto_s3::PutObjectError> for Error {
 impl S3 {
     pub fn new(config: &S3Config) -> Self {
         let Region(ref region) = config.region;
-        let client = rusoto_s3::S3Client::simple(region.clone());
+        let client = rusoto_s3::S3Client::new(region.clone());
         S3 {
             client: client,
             bucket: config.bucket.to_owned(),
@@ -212,7 +209,7 @@ impl S3 {
             ..rusoto_s3::GetObjectRequest::default()
         };
         println!("Download {}", path.display());
-        match self.client.get_object(&request).sync() {
+        match self.client.get_object(request).sync() {
             Ok(output) => {
                 use futures::Future;
                 if let Some(mut body) = output.body {
@@ -237,18 +234,20 @@ impl S3 {
         use std::io::Read;
 
         let path = path.as_ref();
-        let mut request = rusoto_s3::PutObjectRequest::default();
-        request.bucket = self.bucket.to_owned();
-        request.key = path.to_string_lossy().into_owned();
-        request.content_type = Some(content_type.to_owned());
         // FIXME: need streaming for large files
-        // https://github.com/rusoto/rusoto/issues/481
+        // https://github.com/rusoto/rusoto/issues/1028#issuecomment-385361094
         let mut file = try!(std::fs::File::open(path));
         let mut body = vec![];
         try!(file.read_to_end(&mut body));
-        request.body = Some(body);
+        let request = rusoto_s3::PutObjectRequest {
+            bucket: self.bucket.to_owned(),
+            key: path.to_string_lossy().into_owned(),
+            content_type: Some(content_type.to_owned()),
+            body: Some(body.into()),
+            ..Default::default()
+        };
         println!("Upload {}", path.display());
-        try!(self.client.put_object(&request).sync());
+        try!(self.client.put_object(request).sync());
         Ok(())
     }
 }

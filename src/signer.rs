@@ -41,7 +41,7 @@ impl<'a> Signer<'a> {
         Q: AsRef<std::path::Path>,
     {
         let mut ctx = try!(gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp));
-        let key = try!(ctx.find_secret_key(self.key));
+        let key = try!(ctx.get_secret_key(self.key));
         try!(ctx.add_signer(&key));
         let reader = try!(std::fs::File::open(path));
         let mut input = try!(gpgme::Data::from_reader(reader));
