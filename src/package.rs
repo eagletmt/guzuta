@@ -94,7 +94,8 @@ impl Package {
         Ok(Package {
             pkginfo: pkginfo,
             size: try!(std::fs::metadata(path)).len(),
-            filename: path.file_name()
+            filename: path
+                .file_name()
                 .expect("Unable to find file_name from package path")
                 .to_os_string(),
             pgpsig: pgpsig,

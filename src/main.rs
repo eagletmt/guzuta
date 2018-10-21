@@ -19,59 +19,50 @@ fn main() {
                         .takes_value(true)
                         .required(true)
                         .help("Path to chroot top"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("package-key")
                         .long("package-key")
                         .takes_value(true)
                         .help("GPG key to sign packages"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("srcdest")
                         .long("srcdest")
                         .takes_value(true)
                         .help("Path to the directory to store sources"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("logdest")
                         .long("logdest")
                         .takes_value(true)
                         .help("Path to the directory to store logs"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("repo-dir")
                         .long("repo-dir")
                         .takes_value(true)
                         .required(true)
                         .help("Path to the repository directory"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("repo-key")
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("arch")
                         .long("arch")
                         .takes_value(true)
                         .required(true)
                         .help("Architecture"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("repo-name")
                         .long("repo-name")
                         .takes_value(true)
                         .required(true)
                         .help("Repository name"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("PACKAGE_DIR")
                         .required(true)
                         .help("Path to the directory containing PKGBUILD"),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             clap::SubCommand::with_name("repo-add")
                 .about("Add PACKAGE_PATH to DB_PATH")
                 .arg(
@@ -79,19 +70,16 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("PACKAGE_PATH")
                         .required(true)
                         .help("Path to package to be added"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("DB_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             clap::SubCommand::with_name("repo-remove")
                 .about("Remove PACKAGE_NAME from DB_PATH")
                 .arg(
@@ -99,19 +87,16 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("PACKAGE_NAME")
                         .required(true)
                         .help("Path to package to be removed"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("DB_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             clap::SubCommand::with_name("files-add")
                 .about("Add PACKAGE_PATH to FILES_PATH")
                 .arg(
@@ -119,19 +104,16 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("PACKAGE_PATH")
                         .required(true)
                         .help("Path to package to be added"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("FILES_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             clap::SubCommand::with_name("files-remove")
                 .about("Remove PACKAGE_NAME from FILES_PATH")
                 .arg(
@@ -139,19 +121,16 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("PACKAGE_NAME")
                         .required(true)
                         .help("Path to package to be removed"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("DB_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             clap::SubCommand::with_name("abs-add")
                 .about("Add source package to abs tarball")
                 .arg(
@@ -159,26 +138,22 @@ fn main() {
                         .long("srcdest")
                         .takes_value(true)
                         .help("Path to the directory to store sources"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("repo-name")
                         .long("repo-name")
                         .takes_value(true)
                         .required(true)
                         .help("Repository name"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("PACKAGE_DIR")
                         .required(true)
                         .help("Path to the directory containing PKGBUILD"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("ABS_PATH")
                         .required(true)
                         .help("Path to abs tarball"),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             clap::SubCommand::with_name("abs-remove")
                 .about("Remove source package from abs tarball")
                 .arg(
@@ -187,27 +162,23 @@ fn main() {
                         .takes_value(true)
                         .required(true)
                         .help("Repository name"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("PACKAGE_NAME")
                         .required(true)
                         .help("Package name to be removed"),
-                )
-                .arg(
+                ).arg(
                     clap::Arg::with_name("ABS_PATH")
                         .required(true)
                         .help("Path to abs tarball"),
                 ),
-        )
-        .subcommand(
+        ).subcommand(
             clap::SubCommand::with_name("omakase")
                 .about("Manage repository with S3")
                 .subcommand(
                     clap::SubCommand::with_name("build")
                         .about("Build PACKAGE_NAME")
                         .arg(clap::Arg::with_name("PACKAGE_NAME").required(true)),
-                )
-                .subcommand(
+                ).subcommand(
                     clap::SubCommand::with_name("remove")
                         .about("Remove PACKAGE_NAME")
                         .arg(clap::Arg::with_name("PACKAGE_NAME").required(true)),
@@ -271,7 +242,8 @@ fn build(args: &clap::ArgMatches) {
             .expect("Unable to get --chroot-dir option"),
         arch,
     );
-    let package_signer = args.value_of("package-key")
+    let package_signer = args
+        .value_of("package-key")
         .map(|key| guzuta::Signer::new(key));
     let srcdest = args.value_of("srcdest").unwrap_or(".");
     let builder = guzuta::Builder::new(
@@ -283,12 +255,15 @@ fn build(args: &clap::ArgMatches) {
         args.value_of("repo-dir")
             .expect("Unable to get --repo-dir option"),
     );
-    let repo_name = args.value_of("repo-name")
+    let repo_name = args
+        .value_of("repo-name")
         .expect("Unable to get --repo-name option");
-    let package_dir = args.value_of("PACKAGE_DIR")
+    let package_dir = args
+        .value_of("PACKAGE_DIR")
         .expect("Unable to get PACKAGE_DIR argument");
 
-    let repo_signer = args.value_of("repo-key")
+    let repo_signer = args
+        .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
     let repo_signer = repo_signer.as_ref();
     let mut db_path = repo_dir.join(repo_name).into_os_string();
@@ -338,9 +313,11 @@ fn build(args: &clap::ArgMatches) {
 }
 
 fn repo_add(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key")
+    let signer = args
+        .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
-    let package_path = args.value_of("PACKAGE_PATH")
+    let package_path = args
+        .value_of("PACKAGE_PATH")
         .expect("Unable to get PACKAGE_PATH argument");
     let package = guzuta::Package::load(&package_path)
         .expect(&format!("Unable to load package {}", package_path));
@@ -364,9 +341,11 @@ fn repo_add(args: &clap::ArgMatches) {
 }
 
 fn repo_remove(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key")
+    let signer = args
+        .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
-    let package_name = args.value_of("PACKAGE_NAME")
+    let package_name = args
+        .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
     let mut repository = guzuta::Repository::new(
         std::path::PathBuf::from(
@@ -388,9 +367,11 @@ fn repo_remove(args: &clap::ArgMatches) {
 }
 
 fn files_add(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key")
+    let signer = args
+        .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
-    let package_path = args.value_of("PACKAGE_PATH")
+    let package_path = args
+        .value_of("PACKAGE_PATH")
         .expect("Unable to get PACKAGE_PATH argument");
     let package = guzuta::Package::load(&package_path)
         .expect(&format!("Unable to load package {}", package_path));
@@ -414,9 +395,11 @@ fn files_add(args: &clap::ArgMatches) {
 }
 
 fn files_remove(args: &clap::ArgMatches) {
-    let signer = args.value_of("repo-key")
+    let signer = args
+        .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
-    let package_name = args.value_of("PACKAGE_NAME")
+    let package_name = args
+        .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
     let mut repository = guzuta::Repository::new(
         std::path::PathBuf::from(
@@ -439,11 +422,14 @@ fn files_remove(args: &clap::ArgMatches) {
 
 fn abs_add(args: &clap::ArgMatches) {
     let srcdest = std::path::PathBuf::from(args.value_of("srcdest").unwrap_or("."));
-    let repo_name = args.value_of("repo-name")
+    let repo_name = args
+        .value_of("repo-name")
         .expect("Unable to get --repo-name option");
-    let package_dir = args.value_of("PACKAGE_DIR")
+    let package_dir = args
+        .value_of("PACKAGE_DIR")
         .expect("Unable to get PACKAGE_DIR argument");
-    let abs_path = args.value_of("ABS_PATH")
+    let abs_path = args
+        .value_of("ABS_PATH")
         .expect("Unable to get ABS_PATH argument");
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
@@ -455,11 +441,14 @@ fn abs_add(args: &clap::ArgMatches) {
 }
 
 fn abs_remove(args: &clap::ArgMatches) {
-    let repo_name = args.value_of("repo-name")
+    let repo_name = args
+        .value_of("repo-name")
         .expect("Unable to get --repo-name option");
-    let package_name = args.value_of("PACKAGE_NAME")
+    let package_name = args
+        .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
-    let abs_path = args.value_of("ABS_PATH")
+    let abs_path = args
+        .value_of("ABS_PATH")
         .expect("Unable to get ABS_PATH argument");
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
@@ -471,7 +460,8 @@ fn abs_remove(args: &clap::ArgMatches) {
 }
 
 fn omakase_build(args: &clap::ArgMatches) {
-    let package_name = args.value_of("PACKAGE_NAME")
+    let package_name = args
+        .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
     let file = std::fs::File::open(".guzuta.yml").expect("Unable to open .guzuta.yml");
     let config =
@@ -554,7 +544,8 @@ fn omakase_build(args: &clap::ArgMatches) {
 }
 
 fn omakase_remove(args: &clap::ArgMatches) {
-    let package_name = args.value_of("PACKAGE_NAME")
+    let package_name = args
+        .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
     let file = std::fs::File::open(".guzuta.yml").expect("Unable to open .guzuta.yml");
     let config =
