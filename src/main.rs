@@ -272,44 +272,52 @@ fn build(args: &clap::ArgMatches) {
     files_path.push(".files");
     let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path), repo_signer);
     let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path), repo_signer);
-    db_repo.load().expect(&format!(
-        "Unable to load database repository from {}",
-        db_repo.path().display()
-    ));
-    files_repo.load().expect(&format!(
-        "Unable to load files repository from {}",
-        files_repo.path().display()
-    ));
+    db_repo.load().unwrap_or_else(|_| {
+        panic!(
+            "Unable to load database repository from {}",
+            db_repo.path().display()
+        )
+    });
+    files_repo.load().unwrap_or_else(|_| {
+        panic!(
+            "Unable to load files repository from {}",
+            files_repo.path().display()
+        )
+    });
     let mut abs_path = repo_dir.join(repo_name).into_os_string();
     abs_path.push(".abs.tar.gz");
     let abs = guzuta::Abs::new(repo_name, abs_path);
 
     let package_paths = builder
         .build_package(package_dir, repo_dir, &chroot)
-        .expect(&format!("Unable to build package in {}", package_dir));
+        .unwrap_or_else(|_| panic!("Unable to build package in {}", package_dir));
 
     for path in package_paths {
-        let package = guzuta::Package::load(&path).expect(&format!(
-            "Unable to load built package at {}",
-            path.display()
-        ));
+        let package = guzuta::Package::load(&path)
+            .unwrap_or_else(|_| panic!("Unable to load built package at {}", path.display()));
         db_repo.add(&package);
         files_repo.add(&package);
     }
 
-    abs.add(package_dir, srcdest).expect(&format!(
-        "Unable to add {} to abs tarball {}",
-        package_dir,
-        abs.path().display()
-    ));
-    db_repo.save(false).expect(&format!(
-        "Unable to save database repository to {}",
-        db_repo.path().display()
-    ));
-    files_repo.save(true).expect(&format!(
-        "Unable to save files repository to {}",
-        files_repo.path().display()
-    ));
+    abs.add(package_dir, srcdest).unwrap_or_else(|_| {
+        panic!(
+            "Unable to add {} to abs tarball {}",
+            package_dir,
+            abs.path().display()
+        )
+    });
+    db_repo.save(false).unwrap_or_else(|_| {
+        panic!(
+            "Unable to save database repository to {}",
+            db_repo.path().display()
+        )
+    });
+    files_repo.save(true).unwrap_or_else(|_| {
+        panic!(
+            "Unable to save files repository to {}",
+            files_repo.path().display()
+        )
+    });
 }
 
 fn repo_add(args: &clap::ArgMatches) {
@@ -320,7 +328,7 @@ fn repo_add(args: &clap::ArgMatches) {
         .value_of("PACKAGE_PATH")
         .expect("Unable to get PACKAGE_PATH argument");
     let package = guzuta::Package::load(&package_path)
-        .expect(&format!("Unable to load package {}", package_path));
+        .unwrap_or_else(|_| panic!("Unable to load package {}", package_path));
     let mut repository = guzuta::Repository::new(
         std::path::PathBuf::from(
             args.value_of("DB_PATH")
@@ -329,15 +337,19 @@ fn repo_add(args: &clap::ArgMatches) {
         signer.as_ref(),
     );
 
-    repository.load().expect(&format!(
-        "Unable to load database repository from {}",
-        repository.path().display()
-    ));
+    repository.load().unwrap_or_else(|_| {
+        panic!(
+            "Unable to load database repository from {}",
+            repository.path().display()
+        )
+    });
     repository.add(&package);
-    repository.save(false).expect(&format!(
-        "Unable to save database repository to {}",
-        repository.path().display()
-    ));
+    repository.save(false).unwrap_or_else(|_| {
+        panic!(
+            "Unable to save database repository to {}",
+            repository.path().display()
+        )
+    });
 }
 
 fn repo_remove(args: &clap::ArgMatches) {
@@ -355,15 +367,19 @@ fn repo_remove(args: &clap::ArgMatches) {
         signer.as_ref(),
     );
 
-    repository.load().expect(&format!(
-        "Unable to load database repository from {}",
-        repository.path().display()
-    ));
+    repository.load().unwrap_or_else(|_| {
+        panic!(
+            "Unable to load database repository from {}",
+            repository.path().display()
+        )
+    });
     repository.remove(package_name);
-    repository.save(false).expect(&format!(
-        "Unable to save database repository to {}",
-        repository.path().display()
-    ));
+    repository.save(false).unwrap_or_else(|_| {
+        panic!(
+            "Unable to save database repository to {}",
+            repository.path().display()
+        )
+    });
 }
 
 fn files_add(args: &clap::ArgMatches) {
@@ -374,7 +390,7 @@ fn files_add(args: &clap::ArgMatches) {
         .value_of("PACKAGE_PATH")
         .expect("Unable to get PACKAGE_PATH argument");
     let package = guzuta::Package::load(&package_path)
-        .expect(&format!("Unable to load package {}", package_path));
+        .unwrap_or_else(|_| panic!("Unable to load package {}", package_path));
     let mut repository = guzuta::Repository::new(
         std::path::PathBuf::from(
             args.value_of("FILES_PATH")
@@ -383,15 +399,19 @@ fn files_add(args: &clap::ArgMatches) {
         signer.as_ref(),
     );
 
-    repository.load().expect(&format!(
-        "Unable to load files repository from {}",
-        repository.path().display()
-    ));
+    repository.load().unwrap_or_else(|_| {
+        panic!(
+            "Unable to load files repository from {}",
+            repository.path().display()
+        )
+    });
     repository.add(&package);
-    repository.save(true).expect(&format!(
-        "Unable to save files repository to {}",
-        repository.path().display()
-    ));
+    repository.save(true).unwrap_or_else(|_| {
+        panic!(
+            "Unable to save files repository to {}",
+            repository.path().display()
+        )
+    });
 }
 
 fn files_remove(args: &clap::ArgMatches) {
@@ -409,15 +429,19 @@ fn files_remove(args: &clap::ArgMatches) {
         signer.as_ref(),
     );
 
-    repository.load().expect(&format!(
-        "Unable to load files repository from {}",
-        repository.path().display()
-    ));
+    repository.load().unwrap_or_else(|_| {
+        panic!(
+            "Unable to load files repository from {}",
+            repository.path().display()
+        )
+    });
     repository.remove(package_name);
-    repository.save(true).expect(&format!(
-        "Unable to save files repository to {}",
-        repository.path().display()
-    ));
+    repository.save(true).unwrap_or_else(|_| {
+        panic!(
+            "Unable to save files repository to {}",
+            repository.path().display()
+        )
+    });
 }
 
 fn abs_add(args: &clap::ArgMatches) {
@@ -433,11 +457,13 @@ fn abs_add(args: &clap::ArgMatches) {
         .expect("Unable to get ABS_PATH argument");
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
-    abs.add(package_dir, srcdest).expect(&format!(
-        "Unable to add {} to abs tarball {}",
-        package_dir,
-        abs.path().display()
-    ));
+    abs.add(package_dir, srcdest).unwrap_or_else(|_| {
+        panic!(
+            "Unable to add {} to abs tarball {}",
+            package_dir,
+            abs.path().display()
+        )
+    });
 }
 
 fn abs_remove(args: &clap::ArgMatches) {
@@ -452,11 +478,13 @@ fn abs_remove(args: &clap::ArgMatches) {
         .expect("Unable to get ABS_PATH argument");
 
     let abs = guzuta::Abs::new(repo_name, abs_path);
-    abs.remove(package_name).expect(&format!(
-        "Unable to remove {} from abs tarball {}",
-        package_name,
-        abs.path().display()
-    ));
+    abs.remove(package_name).unwrap_or_else(|_| {
+        panic!(
+            "Unable to remove {} from abs tarball {}",
+            package_name,
+            abs.path().display()
+        )
+    });
 }
 
 fn omakase_build(args: &clap::ArgMatches) {
@@ -486,10 +514,12 @@ fn omakase_build(args: &clap::ArgMatches) {
         let abs_path = config.abs_path(arch);
         let package_dir = config.package_dir(package_name);
 
-        std::fs::create_dir_all(repo_dir.as_path()).expect(&format!(
-            "Unable to create directories {}",
-            repo_dir.as_path().display()
-        ));
+        std::fs::create_dir_all(repo_dir.as_path()).unwrap_or_else(|_| {
+            panic!(
+                "Unable to create directories {}",
+                repo_dir.as_path().display()
+            )
+        });
 
         if let Some(ref s3) = s3 {
             s3.download_repository(&config, arch)
@@ -499,42 +529,54 @@ fn omakase_build(args: &clap::ArgMatches) {
         let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
         let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
         let abs = guzuta::Abs::new(&config.name, abs_path);
-        db_repo.load().expect(&format!(
-            "Unable to load database repository from {}",
-            db_repo.path().display()
-        ));
-        files_repo.load().expect(&format!(
-            "Unable to load files repository from {}",
-            files_repo.path().display()
-        ));
+        db_repo.load().unwrap_or_else(|_| {
+            panic!(
+                "Unable to load database repository from {}",
+                db_repo.path().display()
+            )
+        });
+        files_repo.load().unwrap_or_else(|_| {
+            panic!(
+                "Unable to load files repository from {}",
+                files_repo.path().display()
+            )
+        });
 
         let package_paths = builder
             .build_package(package_dir.as_path(), repo_dir, &chroot)
-            .expect(&format!(
-                "Unable to build package in {}",
-                package_dir.as_path().display()
-            ));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Unable to build package in {}",
+                    package_dir.as_path().display()
+                )
+            });
         for path in &package_paths {
             let package = guzuta::Package::load(&path)
-                .expect(&format!("Unable to load package {}", path.display()));
+                .unwrap_or_else(|_| panic!("Unable to load package {}", path.display()));
             db_repo.add(&package);
             files_repo.add(&package);
         }
 
         abs.add(package_dir.as_path(), &config.srcdest)
-            .expect(&format!(
-                "Unable to add {} to abs tarball {}",
-                package_dir.as_path().display(),
-                abs.path().display()
-            ));
-        db_repo.save(false).expect(&format!(
-            "Unable to save database repository to {}",
-            db_repo.path().display()
-        ));
-        files_repo.save(true).expect(&format!(
-            "Unable to save files repository to {}",
-            files_repo.path().display()
-        ));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Unable to add {} to abs tarball {}",
+                    package_dir.as_path().display(),
+                    abs.path().display()
+                )
+            });
+        db_repo.save(false).unwrap_or_else(|_| {
+            panic!(
+                "Unable to save database repository to {}",
+                db_repo.path().display()
+            )
+        });
+        files_repo.save(true).unwrap_or_else(|_| {
+            panic!(
+                "Unable to save files repository to {}",
+                files_repo.path().display()
+            )
+        });
 
         if let Some(ref s3) = s3 {
             s3.upload_repository(&config, arch, &package_paths)
@@ -570,30 +612,40 @@ fn omakase_remove(args: &clap::ArgMatches) {
         let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
         let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
         let abs = guzuta::Abs::new(&config.name, abs_path);
-        db_repo.load().expect(&format!(
-            "Unable to load database repository from {}",
-            db_repo.path().display()
-        ));
-        files_repo.load().expect(&format!(
-            "Unable to load files repository from {}",
-            files_repo.path().display()
-        ));
+        db_repo.load().unwrap_or_else(|_| {
+            panic!(
+                "Unable to load database repository from {}",
+                db_repo.path().display()
+            )
+        });
+        files_repo.load().unwrap_or_else(|_| {
+            panic!(
+                "Unable to load files repository from {}",
+                files_repo.path().display()
+            )
+        });
 
         db_repo.remove(package_name);
         files_repo.remove(package_name);
-        abs.remove(package_name).expect(&format!(
-            "Unable to remove {} from abs tarball {}",
-            package_name,
-            abs.path().display()
-        ));
-        db_repo.save(false).expect(&format!(
-            "Unable to save database repository to {}",
-            db_repo.path().display()
-        ));
-        files_repo.save(true).expect(&format!(
-            "Unable to save files repository to {}",
-            files_repo.path().display()
-        ));
+        abs.remove(package_name).unwrap_or_else(|_| {
+            panic!(
+                "Unable to remove {} from abs tarball {}",
+                package_name,
+                abs.path().display()
+            )
+        });
+        db_repo.save(false).unwrap_or_else(|_| {
+            panic!(
+                "Unable to save database repository to {}",
+                db_repo.path().display()
+            )
+        });
+        files_repo.save(true).unwrap_or_else(|_| {
+            panic!(
+                "Unable to save files repository to {}",
+                files_repo.path().display()
+            )
+        });
 
         if let Some(ref s3) = s3 {
             let paths: Vec<&str> = vec![];

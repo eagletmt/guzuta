@@ -27,7 +27,7 @@ impl<'a> Abs<'a> {
         P: AsRef<std::path::Path>,
     {
         Abs {
-            repo_name: repo_name,
+            repo_name,
             abs_path: abs_path.as_ref().to_path_buf(),
         }
     }
@@ -112,7 +112,7 @@ impl<'a> Abs<'a> {
             return Err(Error::Custom("makepkg --source failed"));
         }
 
-        for entry in try!(std::fs::read_dir(srcpkgdest.path())) {
+        if let Some(entry) = try!(std::fs::read_dir(srcpkgdest.path())).next() {
             let entry = try!(entry);
             let symlink_source_package_path = package_dir.join(entry.file_name());
             if symlink_source_package_path.read_link().is_ok() {
@@ -126,9 +126,10 @@ impl<'a> Abs<'a> {
                 root_dir.display()
             );
             try!(self.unarchive(root_dir.join(self.repo_name), path));
-            return Ok(());
+            Ok(())
+        } else {
+            Err(Error::Custom("No source pakcage is generated"))
         }
-        Err(Error::Custom("No source pakcage is generated"))
     }
 
     fn archive<P, Q>(&self, root_dir: P, abs_path: Q) -> Result<(), std::io::Error>

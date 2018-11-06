@@ -62,10 +62,7 @@ pub struct ChrootHelper<'a> {
 
 impl<'a> ChrootHelper<'a> {
     pub fn new(chroot_dir: &'a str, arch: Arch) -> Self {
-        ChrootHelper {
-            chroot_dir: chroot_dir,
-            arch: arch,
-        }
+        ChrootHelper { chroot_dir, arch }
     }
 
     pub fn makechrootpkg<P, Q, R, S>(
@@ -123,9 +120,9 @@ impl<'a> Builder<'a> {
         logdest: &'a str,
     ) -> Self {
         Builder {
-            signer: signer,
-            srcdest: srcdest,
-            logdest: logdest,
+            signer,
+            srcdest,
+            logdest,
         }
     }
 

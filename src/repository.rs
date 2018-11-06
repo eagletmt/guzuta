@@ -96,8 +96,8 @@ impl<'a> Repository<'a> {
         signer: Option<&'a super::signer::Signer<'a>>,
     ) -> Repository {
         Repository {
-            path: path,
-            signer: signer,
+            path,
+            signer,
             entries: std::collections::HashMap::new(),
         }
     }
@@ -164,13 +164,8 @@ impl<'a> Repository<'a> {
 
         for (_, desc) in desc_entries {
             let files = files_entries.remove(&desc.name).unwrap_or_default();
-            self.entries.insert(
-                desc.name.to_owned(),
-                PackageEntry {
-                    desc: desc,
-                    files: files,
-                },
-            );
+            self.entries
+                .insert(desc.name.to_owned(), PackageEntry { desc, files });
         }
         Ok(())
     }
@@ -205,7 +200,7 @@ impl<'a> Repository<'a> {
         self.entries.insert(
             desc.name.to_owned(),
             PackageEntry {
-                desc: desc,
+                desc,
                 files: package.files().to_owned(),
             },
         );

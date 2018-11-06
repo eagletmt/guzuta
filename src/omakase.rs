@@ -146,7 +146,7 @@ impl S3 {
         let Region(ref region) = config.region;
         let client = rusoto_s3::S3Client::new(region.clone());
         S3 {
-            client: client,
+            client,
             bucket: config.bucket.to_owned(),
         }
     }
@@ -170,9 +170,9 @@ impl S3 {
     where
         P: AsRef<std::path::Path>,
     {
-        const XZ_MIME_TYPE: &'static str = "application/x-xz";
-        const SIG_MIME_TYPE: &'static str = "application/pgp-signature";
-        const GZIP_MIME_TYPE: &'static str = "application/gzip";
+        const XZ_MIME_TYPE: &str = "application/x-xz";
+        const SIG_MIME_TYPE: &str = "application/pgp-signature";
+        const GZIP_MIME_TYPE: &str = "application/gzip";
 
         for package_path in package_paths {
             try!(self.put(package_path, XZ_MIME_TYPE));
@@ -215,7 +215,7 @@ impl S3 {
                 if let Some(mut body) = output.body {
                     use futures::Stream;
                     body.for_each(|buf| {
-                        file.write(&buf)?;
+                        file.write_all(&buf)?;
                         Ok(())
                     }).wait()?;
                 }
