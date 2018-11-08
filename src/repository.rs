@@ -1,50 +1,10 @@
+extern crate failure;
 extern crate flate2;
 extern crate gpgme;
 extern crate std;
 extern crate tar;
 
 use std::io::Read;
-
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Gpgme(gpgme::Error),
-    ParseInt(std::num::ParseIntError),
-    Custom(std::borrow::Cow<'static, str>),
-}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-impl From<super::signer::Error> for Error {
-    fn from(e: super::signer::Error) -> Self {
-        match e {
-            super::signer::Error::Gpgme(e) => Error::Gpgme(e),
-            super::signer::Error::Io(e) => Error::Io(e),
-        }
-    }
-}
-
-impl From<std::num::ParseIntError> for Error {
-    fn from(e: std::num::ParseIntError) -> Self {
-        Error::ParseInt(e)
-    }
-}
-
-impl From<String> for Error {
-    fn from(e: String) -> Self {
-        Error::Custom(std::borrow::Cow::from(e))
-    }
-}
-
-impl From<&'static str> for Error {
-    fn from(e: &'static str) -> Self {
-        Error::Custom(std::borrow::Cow::from(e))
-    }
-}
 
 #[derive(Debug, Default, Clone)]
 pub struct Desc {
@@ -106,27 +66,27 @@ impl<'a> Repository<'a> {
         self.path.as_path()
     }
 
-    pub fn load(&mut self) -> Result<(), Error> {
+    pub fn load(&mut self) -> Result<(), failure::Error> {
         match std::fs::File::open(&self.path) {
             Ok(file) => self.load_from_file(file),
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
                     Ok(())
                 } else {
-                    Err(Error::from(e))
+                    Err(failure::Error::from(e))
                 }
             }
         }
     }
 
-    fn load_from_file(&mut self, file: std::fs::File) -> Result<(), Error> {
+    fn load_from_file(&mut self, file: std::fs::File) -> Result<(), failure::Error> {
         let gz_reader = flate2::read::GzDecoder::new(file);
         let mut tar_reader = tar::Archive::new(gz_reader);
         let mut desc_entries = std::collections::HashMap::new();
         let mut files_entries = std::collections::HashMap::new();
-        for entry_result in try!(tar_reader.entries()) {
-            let mut entry = try!(entry_result);
-            let pathbuf = try!(entry.path()).into_owned();
+        for entry_result in tar_reader.entries()? {
+            let mut entry = entry_result?;
+            let pathbuf = entry.path()?.into_owned();
             let pathname = pathbuf.to_str().expect("Unable to convert PathBuf to str");
             match entry.header().entry_type() {
                 tar::EntryType::Regular => {
@@ -136,28 +96,28 @@ impl<'a> Repository<'a> {
                     let rest = splitn.next();
                     if let (Some(pkgname), Some(filename), None) = (pkgname, filename, rest) {
                         let mut body = String::new();
-                        try!(entry.read_to_string(&mut body));
+                        entry.read_to_string(&mut body)?;
                         match filename {
                             "desc" => {
-                                desc_entries.insert(pkgname.to_owned(), try!(parse_desc(&body)));
+                                desc_entries.insert(pkgname.to_owned(), parse_desc(&body)?);
                             }
                             "depends" => {
                                 // old format
                             }
                             "files" => {
-                                files_entries.insert(pkgname.to_owned(), try!(parse_files(&body)));
+                                files_entries.insert(pkgname.to_owned(), parse_files(&body)?);
                             }
                             _ => {
-                                return Err(Error::from(format!("Unknown pathname: {}", pathname)));
+                                return Err(format_err!("Unknown pathname: {}", pathname));
                             }
                         }
                     } else {
-                        return Err(Error::from(format!("Invalid pathname entry: {}", pathname)));
+                        return Err(format_err!("Invalid pathname entry: {}", pathname));
                     }
                 }
                 tar::EntryType::Directory => {}
                 _ => {
-                    return Err(Error::from(format!("Unknown file type: {}", pathname)));
+                    return Err(format_err!("Unknown file type: {}", pathname));
                 }
             }
         }
@@ -210,10 +170,10 @@ impl<'a> Repository<'a> {
         self.entries.remove(package_name);
     }
 
-    pub fn save(&self, include_files: bool) -> Result<(), Error> {
+    pub fn save(&self, include_files: bool) -> Result<(), failure::Error> {
         let mut tmp_path = self.path.clone().into_os_string();
         tmp_path.push(".progress");
-        let file = try!(std::fs::File::create(&tmp_path));
+        let file = std::fs::File::create(&tmp_path)?;
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::default());
         let mut builder = tar::Builder::new(gz_writer);
         for package_entry in self.entries.values() {
@@ -224,50 +184,50 @@ impl<'a> Repository<'a> {
             {
                 let mut dir_header = tar::Header::new_gnu();
                 dir_header.set_entry_type(tar::EntryType::Directory);
-                try!(dir_header.set_path(&pathbuf));
+                dir_header.set_path(&pathbuf)?;
                 dir_header.set_mode(0o755);
                 dir_header.set_size(0);
                 dir_header.set_cksum();
-                try!(builder.append(&dir_header, std::io::empty()));
+                builder.append(&dir_header, std::io::empty())?;
             }
             {
                 let mut desc_header = tar::Header::new_gnu();
                 desc_header.set_entry_type(tar::EntryType::Regular);
-                try!(desc_header.set_path(pathbuf.join("desc")));
+                desc_header.set_path(pathbuf.join("desc"))?;
                 desc_header.set_mode(0o644);
                 let desc_vec = into_desc_file(package_entry);
                 let desc_bytes = desc_vec.as_slice();
                 desc_header.set_size(desc_bytes.len() as u64);
                 desc_header.set_cksum();
-                try!(builder.append(&desc_header, desc_bytes));
+                builder.append(&desc_header, desc_bytes)?;
             }
             if include_files {
                 let mut files_header = tar::Header::new_gnu();
                 files_header.set_entry_type(tar::EntryType::Regular);
-                try!(files_header.set_path(pathbuf.join("files")));
+                files_header.set_path(pathbuf.join("files"))?;
                 files_header.set_mode(0o644);
                 let files_vec = into_files_file(&package_entry.files);
                 let files_bytes = files_vec.as_slice();
                 files_header.set_size(files_bytes.len() as u64);
                 files_header.set_cksum();
-                try!(builder.append(&files_header, files_bytes));
+                builder.append(&files_header, files_bytes)?;
             }
         }
-        let gz_writer = try!(builder.into_inner());
-        try!(gz_writer.finish());
+        let gz_writer = builder.into_inner()?;
+        gz_writer.finish()?;
 
         if let Some(signer) = self.signer {
             let mut sig_path = self.path.clone().into_os_string();
             sig_path.push(".sig");
-            try!(signer.sign(&tmp_path, sig_path));
+            signer.sign(&tmp_path, sig_path)?;
         }
 
-        try!(std::fs::rename(&tmp_path, &self.path));
+        std::fs::rename(&tmp_path, &self.path)?;
         Ok(())
     }
 }
 
-fn parse_desc(body: &str) -> Result<Desc, Error> {
+fn parse_desc(body: &str) -> Result<Desc, failure::Error> {
     let mut desc = Desc::default();
     for (key, val) in each_entry(body) {
         match key {
@@ -293,10 +253,10 @@ fn parse_desc(body: &str) -> Result<Desc, Error> {
                 desc.desc = val.to_owned();
             }
             "CSIZE" => {
-                desc.csize = try!(val.parse());
+                desc.csize = val.parse()?;
             }
             "ISIZE" => {
-                desc.isize = try!(val.parse());
+                desc.isize = val.parse()?;
             }
             "MD5SUM" => {
                 desc.md5sum = val.to_owned();
@@ -317,7 +277,7 @@ fn parse_desc(body: &str) -> Result<Desc, Error> {
                 desc.arch = val.to_owned();
             }
             "BUILDDATE" => {
-                desc.builddate = try!(val.parse());
+                desc.builddate = val.parse()?;
             }
             "PACKAGER" => {
                 desc.packager = val.to_owned();
@@ -341,7 +301,7 @@ fn parse_desc(body: &str) -> Result<Desc, Error> {
                 desc.optdepends.push(val.to_owned());
             }
             _ => {
-                return Err(Error::from(format!("Unknown desc entry: {}", key)));
+                return Err(format_err!("Unknown desc entry: {}", key));
             }
         }
     }
@@ -452,7 +412,7 @@ fn desc_write_u64(buf: &mut Vec<u8>, key: &[u8], val: u64) {
     }
 }
 
-fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, Error> {
+fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, failure::Error> {
     let mut iter = body.lines();
 
     if let Some("%FILES%") = iter.next() {
@@ -462,7 +422,7 @@ fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, Error> {
         }
         Ok(files)
     } else {
-        Err(Error::from("Empty files file"))
+        Err(format_err!("Empty files file"))
     }
 }
 

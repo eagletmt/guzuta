@@ -10,6 +10,8 @@ extern crate serde_yaml;
 extern crate tar;
 extern crate tempdir;
 #[macro_use]
+extern crate failure;
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;

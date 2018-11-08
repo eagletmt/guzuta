@@ -1,19 +1,8 @@
+extern crate failure;
 extern crate flate2;
 extern crate std;
 extern crate tar;
 extern crate tempdir;
-
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Custom(&'static str),
-}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Abs<'a> {
@@ -36,26 +25,24 @@ impl<'a> Abs<'a> {
         self.abs_path.as_path()
     }
 
-    pub fn add<P, Q>(&self, package_dir: P, srcdest: Q) -> Result<(), Error>
+    pub fn add<P, Q>(&self, package_dir: P, srcdest: Q) -> Result<(), failure::Error>
     where
         P: AsRef<std::path::Path>,
         Q: AsRef<std::path::Path>,
     {
-        let root = try!(tempdir::TempDir::new("guzuta-abs-root"));
+        let root = tempdir::TempDir::new("guzuta-abs-root")?;
         let root = root.as_ref();
-        try!(self.unarchive(root, self.abs_path.as_path()));
-        try!(self.add_srcpkg(root, package_dir, srcdest));
-        try!(self.archive(root, self.abs_path.as_path()));
+        self.unarchive(root, self.abs_path.as_path())?;
+        self.add_srcpkg(root, package_dir, srcdest)?;
+        self.archive(root, self.abs_path.as_path())?;
         Ok(())
     }
 
-    pub fn remove(&self, package_name: &str) -> Result<(), Error> {
-        let root = try!(tempdir::TempDir::new("guzuta-abs-root"));
-        try!(self.unarchive(root.as_ref(), self.abs_path.as_path()));
-        try!(std::fs::remove_dir_all(
-            root.path().join(self.repo_name).join(package_name)
-        ));
-        try!(self.archive(root, self.abs_path.as_path()));
+    pub fn remove(&self, package_name: &str) -> Result<(), failure::Error> {
+        let root = tempdir::TempDir::new("guzuta-abs-root")?;
+        self.unarchive(root.as_ref(), self.abs_path.as_path())?;
+        std::fs::remove_dir_all(root.path().join(self.repo_name).join(package_name))?;
+        self.archive(root, self.abs_path.as_path())?;
         Ok(())
     }
 
@@ -83,11 +70,16 @@ impl<'a> Abs<'a> {
     {
         let gz_reader = flate2::read::GzDecoder::new(abs_file);
         let mut tar_reader = tar::Archive::new(gz_reader);
-        try!(tar_reader.unpack(root_dir));
+        tar_reader.unpack(root_dir)?;
         Ok(())
     }
 
-    fn add_srcpkg<P, Q, R>(&self, root_dir: P, package_dir: Q, srcdest: R) -> Result<(), Error>
+    fn add_srcpkg<P, Q, R>(
+        &self,
+        root_dir: P,
+        package_dir: Q,
+        srcdest: R,
+    ) -> Result<(), failure::Error>
     where
         P: AsRef<std::path::Path>,
         Q: AsRef<std::path::Path>,
@@ -95,11 +87,11 @@ impl<'a> Abs<'a> {
     {
         let package_dir = package_dir.as_ref();
         let root_dir = root_dir.as_ref();
-        let current_dir_buf = try!(std::env::current_dir());
+        let current_dir_buf = std::env::current_dir()?;
         let current_dir = current_dir_buf.as_path();
         let srcdest = current_dir.join(srcdest);
-        let srcpkgdest = try!(tempdir::TempDir::new("guzuta-abs-srcpkgdest"));
-        let builddir = try!(tempdir::TempDir::new("guzuta-abs-builddir"));
+        let srcpkgdest = tempdir::TempDir::new("guzuta-abs-srcpkgdest")?;
+        let builddir = tempdir::TempDir::new("guzuta-abs-builddir")?;
         let mut cmd = std::process::Command::new("makepkg");
         cmd.env("SRCDEST", srcdest)
             .env("SRCPKGDEST", srcpkgdest.path())
@@ -107,17 +99,17 @@ impl<'a> Abs<'a> {
             .current_dir(package_dir)
             .arg("--source");
         info!("{:?}", cmd);
-        let status = try!(cmd.status());
+        let status = cmd.status()?;
         if !status.success() {
-            return Err(Error::Custom("makepkg --source failed"));
+            return Err(format_err!("makepkg --source failed"));
         }
 
-        if let Some(entry) = try!(std::fs::read_dir(srcpkgdest.path())).next() {
-            let entry = try!(entry);
+        if let Some(entry) = std::fs::read_dir(srcpkgdest.path())?.next() {
+            let entry = entry?;
             let symlink_source_package_path = package_dir.join(entry.file_name());
             if symlink_source_package_path.read_link().is_ok() {
                 info!("Unlink symlink {}", symlink_source_package_path.display());
-                try!(std::fs::remove_file(symlink_source_package_path));
+                std::fs::remove_file(symlink_source_package_path)?;
             }
             let path = entry.path();
             info!(
@@ -125,10 +117,10 @@ impl<'a> Abs<'a> {
                 path.display(),
                 root_dir.display()
             );
-            try!(self.unarchive(root_dir.join(self.repo_name), path));
+            self.unarchive(root_dir.join(self.repo_name), path)?;
             Ok(())
         } else {
-            Err(Error::Custom("No source pakcage is generated"))
+            Err(format_err!("No source pakcage is generated"))
         }
     }
 
@@ -138,12 +130,12 @@ impl<'a> Abs<'a> {
         Q: AsRef<std::path::Path>,
     {
         let root_dir = root_dir.as_ref();
-        let file = try!(std::fs::File::create(abs_path.as_ref()));
+        let file = std::fs::File::create(abs_path.as_ref())?;
         let gz_writer = flate2::write::GzEncoder::new(file, flate2::Compression::default());
         let mut builder = tar::Builder::new(gz_writer);
-        try!(self.archive_path(&mut builder, root_dir, root_dir));
-        let gz_writer = try!(builder.into_inner());
-        try!(gz_writer.finish());
+        self.archive_path(&mut builder, root_dir, root_dir)?;
+        let gz_writer = builder.into_inner()?;
+        gz_writer.finish()?;
         Ok(())
     }
 
@@ -165,15 +157,15 @@ impl<'a> Abs<'a> {
             if !path_in_archive.as_os_str().is_empty() {
                 let mut path_in_archive = path_in_archive.to_path_buf().into_os_string();
                 path_in_archive.push("/");
-                try!(builder.append_dir(path_in_archive, path));
+                builder.append_dir(path_in_archive, path)?;
             }
-            for entry in try!(std::fs::read_dir(path)) {
-                try!(self.archive_path(&mut builder, root_dir, try!(entry).path()));
+            for entry in std::fs::read_dir(path)? {
+                self.archive_path(&mut builder, root_dir, entry?.path())?;
             }
             Ok(())
         } else if path.is_file() {
-            let mut file = try!(std::fs::File::open(path));
-            try!(builder.append_file(path_in_archive, &mut file));
+            let mut file = std::fs::File::open(path)?;
+            builder.append_file(path_in_archive, &mut file)?;
             Ok(())
         } else {
             // Ignore unknown file type

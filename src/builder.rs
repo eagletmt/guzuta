@@ -1,28 +1,7 @@
+extern crate failure;
 extern crate gpgme;
 extern crate std;
 extern crate tempdir;
-
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Gpgme(gpgme::Error),
-    Custom(&'static str),
-}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-impl From<super::signer::Error> for Error {
-    fn from(e: super::signer::Error) -> Self {
-        match e {
-            super::signer::Error::Io(e) => Error::Io(e),
-            super::signer::Error::Gpgme(e) => Error::Gpgme(e),
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[allow(non_camel_case_types)]
@@ -71,14 +50,14 @@ impl<'a> ChrootHelper<'a> {
         srcdest: Q,
         pkgdest: R,
         logdest: S,
-    ) -> Result<(), Error>
+    ) -> Result<(), failure::Error>
     where
         P: AsRef<std::path::Path>,
         Q: AsRef<std::path::Path>,
         R: AsRef<std::path::Path>,
         S: AsRef<std::path::Path>,
     {
-        let current_dir_buf = try!(std::env::current_dir());
+        let current_dir_buf = std::env::current_dir()?;
         let current_dir = current_dir_buf.as_path();
         let mut srcdest_arg = std::ffi::OsString::from("SRCDEST=");
         srcdest_arg.push(current_dir.join(srcdest));
@@ -97,11 +76,11 @@ impl<'a> ChrootHelper<'a> {
             .arg("-cur")
             .arg(current_dir.join(self.chroot_dir));
         info!("{:?}", cmd);
-        let status = try!(cmd.status());
+        let status = cmd.status()?;
         if status.success() {
             Ok(())
         } else {
-            Err(Error::Custom("makechrootpkg failed"))
+            Err(format_err!("makechrootpkg failed"))
         }
     }
 }
@@ -131,31 +110,31 @@ impl<'a> Builder<'a> {
         package_dir: P,
         repo_dir: Q,
         chroot_helper: &ChrootHelper,
-    ) -> Result<Vec<std::path::PathBuf>, Error>
+    ) -> Result<Vec<std::path::PathBuf>, failure::Error>
     where
         P: AsRef<std::path::Path>,
         Q: AsRef<std::path::Path>,
     {
         let package_dir = package_dir.as_ref();
-        let tempdir = try!(tempdir::TempDir::new("guzuta-pkgdest"));
+        let tempdir = tempdir::TempDir::new("guzuta-pkgdest")?;
         let pkgdest = tempdir.path();
-        try!(chroot_helper.makechrootpkg(package_dir, self.srcdest, pkgdest, self.logdest));
+        chroot_helper.makechrootpkg(package_dir, self.srcdest, pkgdest, self.logdest)?;
         let mut paths = vec![];
-        for entry in try!(std::fs::read_dir(pkgdest)) {
-            let entry = try!(entry);
+        for entry in std::fs::read_dir(pkgdest)? {
+            let entry = entry?;
             let symlink_package_path = package_dir.join(entry.file_name());
             if symlink_package_path.read_link().is_ok() {
                 // Unlink symlink created by makechrootpkg
                 info!("Unlink symlink {}", symlink_package_path.display());
-                try!(std::fs::remove_file(symlink_package_path));
+                std::fs::remove_file(symlink_package_path)?;
             }
             let dest = repo_dir.as_ref().join(entry.file_name());
             info!("Copy {} to {}", entry.path().display(), dest.display());
-            try!(std::fs::copy(entry.path(), &dest));
+            std::fs::copy(entry.path(), &dest)?;
             if let Some(signer) = self.signer {
                 let mut sig_dest = dest.clone().into_os_string();
                 sig_dest.push(".sig");
-                try!(signer.sign(&dest, sig_dest));
+                signer.sign(&dest, sig_dest)?;
             }
             paths.push(dest);
         }
