@@ -1,9 +1,3 @@
-extern crate failure;
-extern crate flate2;
-extern crate gpgme;
-extern crate std;
-extern crate tar;
-
 use std::io::Read;
 
 #[derive(Debug, Default, Clone)]
@@ -108,16 +102,16 @@ impl<'a> Repository<'a> {
                                 files_entries.insert(pkgname.to_owned(), parse_files(&body)?);
                             }
                             _ => {
-                                return Err(format_err!("Unknown pathname: {}", pathname));
+                                return Err(failure::format_err!("Unknown pathname: {}", pathname));
                             }
                         }
                     } else {
-                        return Err(format_err!("Invalid pathname entry: {}", pathname));
+                        return Err(failure::format_err!("Invalid pathname entry: {}", pathname));
                     }
                 }
                 tar::EntryType::Directory => {}
                 _ => {
-                    return Err(format_err!("Unknown file type: {}", pathname));
+                    return Err(failure::format_err!("Unknown file type: {}", pathname));
                 }
             }
         }
@@ -301,7 +295,7 @@ fn parse_desc(body: &str) -> Result<Desc, failure::Error> {
                 desc.optdepends.push(val.to_owned());
             }
             _ => {
-                return Err(format_err!("Unknown desc entry: {}", key));
+                return Err(failure::format_err!("Unknown desc entry: {}", key));
             }
         }
     }
@@ -422,7 +416,7 @@ fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, failure::Error> {
         }
         Ok(files)
     } else {
-        Err(format_err!("Empty files file"))
+        Err(failure::format_err!("Empty files file"))
     }
 }
 

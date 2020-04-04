@@ -1,9 +1,4 @@
-extern crate failure;
-extern crate gpgme;
-extern crate std;
-extern crate tempdir;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde_derive::Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum Arch {
     #[serde(rename = "i686")]
@@ -75,12 +70,12 @@ impl<'a> ChrootHelper<'a> {
             .arg("makechrootpkg")
             .arg("-cur")
             .arg(current_dir.join(self.chroot_dir));
-        info!("{:?}", cmd);
+        log::info!("{:?}", cmd);
         let status = cmd.status()?;
         if status.success() {
             Ok(())
         } else {
-            Err(format_err!("makechrootpkg failed"))
+            Err(failure::format_err!("makechrootpkg failed"))
         }
     }
 }
@@ -125,11 +120,11 @@ impl<'a> Builder<'a> {
             let symlink_package_path = package_dir.join(entry.file_name());
             if symlink_package_path.read_link().is_ok() {
                 // Unlink symlink created by makechrootpkg
-                info!("Unlink symlink {}", symlink_package_path.display());
+                log::info!("Unlink symlink {}", symlink_package_path.display());
                 std::fs::remove_file(symlink_package_path)?;
             }
             let dest = repo_dir.as_ref().join(entry.file_name());
-            info!("Copy {} to {}", entry.path().display(), dest.display());
+            log::info!("Copy {} to {}", entry.path().display(), dest.display());
             std::fs::copy(entry.path(), &dest)?;
             if let Some(signer) = self.signer {
                 let mut sig_dest = dest.clone().into_os_string();

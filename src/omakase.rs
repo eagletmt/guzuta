@@ -1,12 +1,4 @@
-extern crate failure;
-extern crate futures;
-extern crate rusoto_core;
-extern crate rusoto_s3;
-extern crate serde;
-extern crate serde_yaml;
-extern crate std;
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, serde_derive::Deserialize)]
 pub struct Config {
     pub name: String,
     pub package_key: Option<String>,
@@ -18,12 +10,12 @@ pub struct Config {
     pub s3: Option<S3Config>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, serde_derive::Deserialize)]
 pub struct BuildConfig {
     pub chroot: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, serde_derive::Deserialize)]
 pub struct S3Config {
     pub bucket: String,
     pub region: Region,
@@ -181,12 +173,13 @@ impl S3 {
         match self.client.get_object(request).sync() {
             Ok(output) => {
                 use futures::Future;
-                if let Some(mut body) = output.body {
+                if let Some(body) = output.body {
                     use futures::Stream;
                     body.for_each(|buf| {
                         file.write_all(&buf)?;
                         Ok(())
-                    }).wait()?;
+                    })
+                    .wait()?;
                 }
                 Ok(())
             }

@@ -1,10 +1,3 @@
-extern crate base64;
-extern crate crypto;
-extern crate failure;
-extern crate lzma;
-extern crate std;
-extern crate tar;
-
 use crypto::digest::Digest;
 use std::io::Read;
 
@@ -197,7 +190,7 @@ impl PkgInfo {
         if let Some(pkginfo) = pkginfo {
             Ok((pkginfo, files))
         } else {
-            Err(format_err!(".PKGINFO not found"))
+            Err(failure::format_err!(".PKGINFO not found"))
         }
     }
 }
@@ -235,10 +228,16 @@ fn parse_pkginfo(body: &str) -> Result<PkgInfo, failure::Error> {
                 "provides" => info.provides.push(val.to_owned()),
                 "backup" => info.backups.push(val.to_owned()),
                 "replaces" => info.replaces.push(val.to_owned()),
-                _ => return Err(format_err!("Unknown PKGINFO entry '{}': {}", key, line)),
+                _ => {
+                    return Err(failure::format_err!(
+                        "Unknown PKGINFO entry '{}': {}",
+                        key,
+                        line
+                    ))
+                }
             }
         } else {
-            return Err(format_err!("Invalid line: {}", line));
+            return Err(failure::format_err!("Invalid line: {}", line));
         }
     }
     Ok(info)

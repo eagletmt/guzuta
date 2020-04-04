@@ -1,9 +1,3 @@
-extern crate failure;
-extern crate flate2;
-extern crate std;
-extern crate tar;
-extern crate tempdir;
-
 #[derive(Debug, Clone)]
 pub struct Abs<'a> {
     repo_name: &'a str,
@@ -98,21 +92,21 @@ impl<'a> Abs<'a> {
             .env("BUILDDIR", builddir.path())
             .current_dir(package_dir)
             .arg("--source");
-        info!("{:?}", cmd);
+        log::info!("{:?}", cmd);
         let status = cmd.status()?;
         if !status.success() {
-            return Err(format_err!("makepkg --source failed"));
+            return Err(failure::format_err!("makepkg --source failed"));
         }
 
         if let Some(entry) = std::fs::read_dir(srcpkgdest.path())?.next() {
             let entry = entry?;
             let symlink_source_package_path = package_dir.join(entry.file_name());
             if symlink_source_package_path.read_link().is_ok() {
-                info!("Unlink symlink {}", symlink_source_package_path.display());
+                log::info!("Unlink symlink {}", symlink_source_package_path.display());
                 std::fs::remove_file(symlink_source_package_path)?;
             }
             let path = entry.path();
-            info!(
+            log::info!(
                 "Unarchive source package {} into {}",
                 path.display(),
                 root_dir.display()
@@ -120,7 +114,7 @@ impl<'a> Abs<'a> {
             self.unarchive(root_dir.join(self.repo_name), path)?;
             Ok(())
         } else {
-            Err(format_err!("No source pakcage is generated"))
+            Err(failure::format_err!("No source pakcage is generated"))
         }
     }
 

@@ -1,7 +1,3 @@
-extern crate failure;
-extern crate gpgme;
-extern crate std;
-
 #[derive(Debug, Clone)]
 pub struct Signer<'a> {
     key: &'a str,

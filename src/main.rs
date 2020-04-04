@@ -1,13 +1,8 @@
-#[macro_use]
-extern crate clap;
-extern crate env_logger;
-extern crate guzuta;
-
 fn main() {
     env_logger::init();
 
     let app = clap::App::new("guzuta")
-        .version(crate_version!())
+        .version(clap::crate_version!())
         .about("Custom repository manager for ArchLinux pacman")
         .setting(clap::AppSettings::SubcommandRequired)
         .subcommand(
@@ -19,50 +14,59 @@ fn main() {
                         .takes_value(true)
                         .required(true)
                         .help("Path to chroot top"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("package-key")
                         .long("package-key")
                         .takes_value(true)
                         .help("GPG key to sign packages"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("srcdest")
                         .long("srcdest")
                         .takes_value(true)
                         .help("Path to the directory to store sources"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("logdest")
                         .long("logdest")
                         .takes_value(true)
                         .help("Path to the directory to store logs"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("repo-dir")
                         .long("repo-dir")
                         .takes_value(true)
                         .required(true)
                         .help("Path to the repository directory"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("repo-key")
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("arch")
                         .long("arch")
                         .takes_value(true)
                         .required(true)
                         .help("Architecture"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("repo-name")
                         .long("repo-name")
                         .takes_value(true)
                         .required(true)
                         .help("Repository name"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("PACKAGE_DIR")
                         .required(true)
                         .help("Path to the directory containing PKGBUILD"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             clap::SubCommand::with_name("repo-add")
                 .about("Add PACKAGE_PATH to DB_PATH")
                 .arg(
@@ -70,16 +74,19 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("PACKAGE_PATH")
                         .required(true)
                         .help("Path to package to be added"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("DB_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             clap::SubCommand::with_name("repo-remove")
                 .about("Remove PACKAGE_NAME from DB_PATH")
                 .arg(
@@ -87,16 +94,19 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("PACKAGE_NAME")
                         .required(true)
                         .help("Path to package to be removed"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("DB_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             clap::SubCommand::with_name("files-add")
                 .about("Add PACKAGE_PATH to FILES_PATH")
                 .arg(
@@ -104,16 +114,19 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("PACKAGE_PATH")
                         .required(true)
                         .help("Path to package to be added"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("FILES_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             clap::SubCommand::with_name("files-remove")
                 .about("Remove PACKAGE_NAME from FILES_PATH")
                 .arg(
@@ -121,16 +134,19 @@ fn main() {
                         .long("repo-key")
                         .takes_value(true)
                         .help("GPG key to sign repository database"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("PACKAGE_NAME")
                         .required(true)
                         .help("Path to package to be removed"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("DB_PATH")
                         .required(true)
                         .help("Path to repository database"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             clap::SubCommand::with_name("abs-add")
                 .about("Add source package to abs tarball")
                 .arg(
@@ -138,22 +154,26 @@ fn main() {
                         .long("srcdest")
                         .takes_value(true)
                         .help("Path to the directory to store sources"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("repo-name")
                         .long("repo-name")
                         .takes_value(true)
                         .required(true)
                         .help("Repository name"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("PACKAGE_DIR")
                         .required(true)
                         .help("Path to the directory containing PKGBUILD"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("ABS_PATH")
                         .required(true)
                         .help("Path to abs tarball"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             clap::SubCommand::with_name("abs-remove")
                 .about("Remove source package from abs tarball")
                 .arg(
@@ -162,23 +182,27 @@ fn main() {
                         .takes_value(true)
                         .required(true)
                         .help("Repository name"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("PACKAGE_NAME")
                         .required(true)
                         .help("Package name to be removed"),
-                ).arg(
+                )
+                .arg(
                     clap::Arg::with_name("ABS_PATH")
                         .required(true)
                         .help("Path to abs tarball"),
                 ),
-        ).subcommand(
+        )
+        .subcommand(
             clap::SubCommand::with_name("omakase")
                 .about("Manage repository with S3")
                 .subcommand(
                     clap::SubCommand::with_name("build")
                         .about("Build PACKAGE_NAME")
                         .arg(clap::Arg::with_name("PACKAGE_NAME").required(true)),
-                ).subcommand(
+                )
+                .subcommand(
                     clap::SubCommand::with_name("remove")
                         .about("Remove PACKAGE_NAME")
                         .arg(clap::Arg::with_name("PACKAGE_NAME").required(true)),
