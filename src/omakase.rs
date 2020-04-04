@@ -112,17 +112,17 @@ impl S3 {
         }
     }
 
-    pub fn download_repository(
+    pub async fn download_repository(
         &self,
         config: &Config,
         arch: &super::builder::Arch,
     ) -> Result<(), failure::Error> {
-        self.get(config.db_path(arch))?;
-        self.get(config.files_path(arch))?;
-        self.get(config.abs_path(arch))
+        self.get(config.db_path(arch)).await?;
+        self.get(config.files_path(arch)).await?;
+        self.get(config.abs_path(arch)).await
     }
 
-    pub fn upload_repository<P>(
+    pub async fn upload_repository<P>(
         &self,
         config: &Config,
         arch: &super::builder::Arch,
@@ -136,26 +136,26 @@ impl S3 {
         const GZIP_MIME_TYPE: &str = "application/gzip";
 
         for package_path in package_paths {
-            self.put(package_path, XZ_MIME_TYPE)?;
+            self.put(package_path, XZ_MIME_TYPE).await?;
             if config.package_key.is_some() {
                 let mut sig_path = package_path.as_ref().as_os_str().to_os_string();
                 sig_path.push(".sig");
-                self.put(sig_path, SIG_MIME_TYPE)?;
+                self.put(sig_path, SIG_MIME_TYPE).await?;
             }
         }
-        self.put(config.abs_path(arch), GZIP_MIME_TYPE)?;
-        self.put(config.files_path(arch), GZIP_MIME_TYPE)?;
+        self.put(config.abs_path(arch), GZIP_MIME_TYPE).await?;
+        self.put(config.files_path(arch), GZIP_MIME_TYPE).await?;
         let db_path = config.db_path(arch);
-        self.put(&db_path, GZIP_MIME_TYPE)?;
+        self.put(&db_path, GZIP_MIME_TYPE).await?;
         if config.repo_key.is_some() {
             let mut sig_path = db_path.into_os_string();
             sig_path.push(".sig");
-            self.put(sig_path, SIG_MIME_TYPE)?;
+            self.put(sig_path, SIG_MIME_TYPE).await?;
         }
         Ok(())
     }
 
-    fn get<P>(&self, path: P) -> Result<(), failure::Error>
+    async fn get<P>(&self, path: P) -> Result<(), failure::Error>
     where
         P: AsRef<std::path::Path>,
     {
@@ -170,25 +170,27 @@ impl S3 {
             ..rusoto_s3::GetObjectRequest::default()
         };
         println!("Download {}", path.display());
-        match self.client.get_object(request).sync() {
+        match self.client.get_object(request).await {
             Ok(output) => {
-                use futures::Future;
                 if let Some(body) = output.body {
-                    use futures::Stream;
+                    use futures::StreamExt;
                     body.for_each(|buf| {
-                        file.write_all(&buf)?;
-                        Ok(())
+                        let bytes = buf.unwrap();
+                        file.write_all(&bytes[..]).unwrap();
+                        futures::future::ready(())
                     })
-                    .wait()?;
+                    .await;
                 }
                 Ok(())
             }
-            Err(rusoto_s3::GetObjectError::NoSuchKey(_)) => Ok(()),
+            Err(rusoto_core::RusotoError::Service(rusoto_s3::GetObjectError::NoSuchKey(_))) => {
+                Ok(())
+            }
             Err(e) => Err(failure::Error::from(e)),
         }
     }
 
-    fn put<P>(&self, path: P, content_type: &str) -> Result<(), failure::Error>
+    async fn put<P>(&self, path: P, content_type: &str) -> Result<(), failure::Error>
     where
         P: AsRef<std::path::Path>,
     {
@@ -209,7 +211,7 @@ impl S3 {
             ..Default::default()
         };
         println!("Upload {}", path.display());
-        self.client.put_object(request).sync()?;
+        self.client.put_object(request).await?;
         Ok(())
     }
 }

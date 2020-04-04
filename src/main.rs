@@ -1,4 +1,5 @@
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::init();
 
     let app = clap::App::new("guzuta")
@@ -210,10 +211,10 @@ fn main() {
         );
     let matches = app.get_matches();
 
-    run_subcommand(matches.subcommand());
+    run_subcommand(matches.subcommand()).await;
 }
 
-fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches>)) {
+async fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches<'_>>)) {
     match subcommand {
         ("build", Some(build_command)) => build(build_command),
         ("repo-add", Some(repo_add_command)) => {
@@ -236,10 +237,10 @@ fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches>)) {
         }
         ("omakase", Some(omakase_command)) => match omakase_command.subcommand() {
             ("build", Some(build_command)) => {
-                omakase_build(build_command);
+                omakase_build(build_command).await;
             }
             ("remove", Some(remove_command)) => {
-                omakase_remove(remove_command);
+                omakase_remove(remove_command).await;
             }
             _ => {
                 panic!("Unknown subcommand");
@@ -511,7 +512,7 @@ fn abs_remove(args: &clap::ArgMatches) {
     });
 }
 
-fn omakase_build(args: &clap::ArgMatches) {
+async fn omakase_build(args: &clap::ArgMatches<'_>) {
     let package_name = args
         .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
@@ -547,6 +548,7 @@ fn omakase_build(args: &clap::ArgMatches) {
 
         if let Some(ref s3) = s3 {
             s3.download_repository(&config, arch)
+                .await
                 .expect("Unable to download files from S3");
         }
 
@@ -604,12 +606,13 @@ fn omakase_build(args: &clap::ArgMatches) {
 
         if let Some(ref s3) = s3 {
             s3.upload_repository(&config, arch, &package_paths)
+                .await
                 .expect("Unable to upload files to S3");
         }
     }
 }
 
-fn omakase_remove(args: &clap::ArgMatches) {
+async fn omakase_remove(args: &clap::ArgMatches<'_>) {
     let package_name = args
         .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
@@ -630,6 +633,7 @@ fn omakase_remove(args: &clap::ArgMatches) {
 
         if let Some(ref s3) = s3 {
             s3.download_repository(&config, arch)
+                .await
                 .expect("Unable to download files from S3");
         }
 
@@ -674,6 +678,7 @@ fn omakase_remove(args: &clap::ArgMatches) {
         if let Some(ref s3) = s3 {
             let paths: Vec<&str> = vec![];
             s3.upload_repository(&config, arch, &paths)
+                .await
                 .expect("Unable to upload files to S3");
         }
     }
