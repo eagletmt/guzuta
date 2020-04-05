@@ -28,3 +28,4 @@ serde_yaml = "0.8"
 tar = "0.4"
 tempdir = "0.3"
 tokio = { version = "0.2", features = ["full"] }
+zstd = "0.5"

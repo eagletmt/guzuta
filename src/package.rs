@@ -168,9 +168,20 @@ impl PkgInfo {
     where
         P: AsRef<std::path::Path>,
     {
-        let file = std::fs::File::open(path)?;
-        let xz_reader = lzma::LzmaReader::new_decompressor(file)?;
-        let mut tar_reader = tar::Archive::new(xz_reader);
+        let file = std::fs::File::open(path.as_ref())?;
+        let archive_reader: Box<dyn std::io::Read> =
+            if let Some(extension) = path.as_ref().extension() {
+                if extension == "xz" {
+                    Box::new(lzma::LzmaReader::new_decompressor(file)?)
+                } else if extension == "zst" {
+                    Box::new(zstd::Decoder::new(file)?)
+                } else {
+                    panic!("Unknown file format: {}", path.as_ref().display())
+                }
+            } else {
+                panic!("Unknown file format: {}", path.as_ref().display())
+            };
+        let mut tar_reader = tar::Archive::new(archive_reader);
         let mut pkginfo = None;
         let mut files = vec![];
         for entry_result in tar_reader.entries()? {
