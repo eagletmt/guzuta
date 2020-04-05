@@ -1,6 +1,6 @@
 [package]
 name = "guzuta"
-version = "0.2.9"
+version = "0.2.10"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 description = "Custom repository manager for ArchLinux pacman"
 homepage = "https://github.com/eagletmt/guzuta"
