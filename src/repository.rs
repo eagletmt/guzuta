@@ -60,20 +60,20 @@ impl<'a> Repository<'a> {
         self.path.as_path()
     }
 
-    pub fn load(&mut self) -> Result<(), failure::Error> {
+    pub fn load(&mut self) -> Result<(), anyhow::Error> {
         match std::fs::File::open(&self.path) {
             Ok(file) => self.load_from_file(file),
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
                     Ok(())
                 } else {
-                    Err(failure::Error::from(e))
+                    Err(anyhow::Error::from(e))
                 }
             }
         }
     }
 
-    fn load_from_file(&mut self, file: std::fs::File) -> Result<(), failure::Error> {
+    fn load_from_file(&mut self, file: std::fs::File) -> Result<(), anyhow::Error> {
         let gz_reader = flate2::read::GzDecoder::new(file);
         let mut tar_reader = tar::Archive::new(gz_reader);
         let mut desc_entries = std::collections::HashMap::new();
@@ -102,16 +102,16 @@ impl<'a> Repository<'a> {
                                 files_entries.insert(pkgname.to_owned(), parse_files(&body)?);
                             }
                             _ => {
-                                return Err(failure::format_err!("Unknown pathname: {}", pathname));
+                                return Err(anyhow::anyhow!("Unknown pathname: {}", pathname));
                             }
                         }
                     } else {
-                        return Err(failure::format_err!("Invalid pathname entry: {}", pathname));
+                        return Err(anyhow::anyhow!("Invalid pathname entry: {}", pathname));
                     }
                 }
                 tar::EntryType::Directory => {}
                 _ => {
-                    return Err(failure::format_err!("Unknown file type: {}", pathname));
+                    return Err(anyhow::anyhow!("Unknown file type: {}", pathname));
                 }
             }
         }
@@ -164,7 +164,7 @@ impl<'a> Repository<'a> {
         self.entries.remove(package_name);
     }
 
-    pub fn save(&self, include_files: bool) -> Result<(), failure::Error> {
+    pub fn save(&self, include_files: bool) -> Result<(), anyhow::Error> {
         let mut tmp_path = self.path.clone().into_os_string();
         tmp_path.push(".progress");
         let file = std::fs::File::create(&tmp_path)?;
@@ -221,7 +221,7 @@ impl<'a> Repository<'a> {
     }
 }
 
-fn parse_desc(body: &str) -> Result<Desc, failure::Error> {
+fn parse_desc(body: &str) -> Result<Desc, anyhow::Error> {
     let mut desc = Desc::default();
     for (key, val) in each_entry(body) {
         match key {
@@ -295,7 +295,7 @@ fn parse_desc(body: &str) -> Result<Desc, failure::Error> {
                 desc.optdepends.push(val.to_owned());
             }
             _ => {
-                return Err(failure::format_err!("Unknown desc entry: {}", key));
+                return Err(anyhow::anyhow!("Unknown desc entry: {}", key));
             }
         }
     }
@@ -406,7 +406,7 @@ fn desc_write_u64(buf: &mut Vec<u8>, key: &[u8], val: u64) {
     }
 }
 
-fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, failure::Error> {
+fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, anyhow::Error> {
     let mut iter = body.lines();
 
     if let Some("%FILES%") = iter.next() {
@@ -416,7 +416,7 @@ fn parse_files(body: &str) -> Result<Vec<std::path::PathBuf>, failure::Error> {
         }
         Ok(files)
     } else {
-        Err(failure::format_err!("Empty files file"))
+        Err(anyhow::anyhow!("Empty files file"))
     }
 }
 

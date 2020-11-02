@@ -13,7 +13,7 @@ pub struct Package {
 }
 
 impl Package {
-    pub fn load<P>(path: P) -> Result<Package, failure::Error>
+    pub fn load<P>(path: P) -> Result<Package, anyhow::Error>
     where
         P: AsRef<std::path::Path>,
     {
@@ -33,16 +33,13 @@ impl Package {
         let mut f = std::fs::File::open(path)?;
         loop {
             let mut buf = [0; 1024];
-            match f.read(&mut buf) {
-                Ok(0) => {
+            match f.read(&mut buf)? {
+                0 => {
                     break;
                 }
-                Ok(len) => {
+                len => {
                     md5.input(&buf[..len]);
                     sha256.input(&buf[..len]);
-                }
-                Err(e) => {
-                    return Err(failure::Error::from(e));
                 }
             }
         }
@@ -164,7 +161,7 @@ pub struct PkgInfo {
 }
 
 impl PkgInfo {
-    fn load<P>(path: P) -> Result<(Self, Vec<std::path::PathBuf>), failure::Error>
+    fn load<P>(path: P) -> Result<(Self, Vec<std::path::PathBuf>), anyhow::Error>
     where
         P: AsRef<std::path::Path>,
     {
@@ -201,12 +198,12 @@ impl PkgInfo {
         if let Some(pkginfo) = pkginfo {
             Ok((pkginfo, files))
         } else {
-            Err(failure::format_err!(".PKGINFO not found"))
+            Err(anyhow::anyhow!(".PKGINFO not found"))
         }
     }
 }
 
-fn parse_pkginfo(body: &str) -> Result<PkgInfo, failure::Error> {
+fn parse_pkginfo(body: &str) -> Result<PkgInfo, anyhow::Error> {
     let mut info = PkgInfo::default();
     for line in body.lines() {
         if line.starts_with('#') {
@@ -239,16 +236,10 @@ fn parse_pkginfo(body: &str) -> Result<PkgInfo, failure::Error> {
                 "provides" => info.provides.push(val.to_owned()),
                 "backup" => info.backups.push(val.to_owned()),
                 "replaces" => info.replaces.push(val.to_owned()),
-                _ => {
-                    return Err(failure::format_err!(
-                        "Unknown PKGINFO entry '{}': {}",
-                        key,
-                        line
-                    ))
-                }
+                _ => return Err(anyhow::anyhow!("Unknown PKGINFO entry '{}': {}", key, line)),
             }
         } else {
-            return Err(failure::format_err!("Invalid line: {}", line));
+            return Err(anyhow::anyhow!("Invalid line: {}", line));
         }
     }
     Ok(info)

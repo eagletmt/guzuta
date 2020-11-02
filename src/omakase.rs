@@ -110,7 +110,7 @@ impl S3 {
         &self,
         config: &Config,
         arch: &super::builder::Arch,
-    ) -> Result<(), failure::Error> {
+    ) -> Result<(), anyhow::Error> {
         self.get(config.db_path(arch)).await?;
         self.get(config.files_path(arch)).await
     }
@@ -120,7 +120,7 @@ impl S3 {
         config: &Config,
         arch: &super::builder::Arch,
         package_paths: &[P],
-    ) -> Result<(), failure::Error>
+    ) -> Result<(), anyhow::Error>
     where
         P: AsRef<std::path::Path>,
     {
@@ -133,21 +133,21 @@ impl S3 {
             if config.package_key.is_some() {
                 let mut sig_path = package_path.as_ref().as_os_str().to_os_string();
                 sig_path.push(".sig");
-                self.put(sig_path, SIG_MIME_TYPE).await?;
+                self.put(&sig_path, SIG_MIME_TYPE).await?;
             }
         }
         self.put(config.files_path(arch), GZIP_MIME_TYPE).await?;
         let db_path = config.db_path(arch);
         self.put(&db_path, GZIP_MIME_TYPE).await?;
         if config.repo_key.is_some() {
-            let mut sig_path = db_path.into_os_string();
+            let mut sig_path = db_path.clone().into_os_string();
             sig_path.push(".sig");
             self.put(sig_path, SIG_MIME_TYPE).await?;
         }
         Ok(())
     }
 
-    async fn get<P>(&self, path: P) -> Result<(), failure::Error>
+    async fn get<P>(&self, path: P) -> Result<(), anyhow::Error>
     where
         P: AsRef<std::path::Path>,
     {
@@ -178,11 +178,11 @@ impl S3 {
             Err(rusoto_core::RusotoError::Service(rusoto_s3::GetObjectError::NoSuchKey(_))) => {
                 Ok(())
             }
-            Err(e) => Err(failure::Error::from(e)),
+            Err(e) => Err(anyhow::Error::from(e)),
         }
     }
 
-    async fn put<P>(&self, path: P, content_type: &str) -> Result<(), failure::Error>
+    async fn put<P>(&self, path: P, content_type: &str) -> Result<(), anyhow::Error>
     where
         P: AsRef<std::path::Path>,
     {

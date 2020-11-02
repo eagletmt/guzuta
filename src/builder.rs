@@ -45,7 +45,7 @@ impl<'a> ChrootHelper<'a> {
         srcdest: Q,
         pkgdest: R,
         logdest: S,
-    ) -> Result<(), failure::Error>
+    ) -> Result<(), anyhow::Error>
     where
         P: AsRef<std::path::Path>,
         Q: AsRef<std::path::Path>,
@@ -75,7 +75,7 @@ impl<'a> ChrootHelper<'a> {
         if status.success() {
             Ok(())
         } else {
-            Err(failure::format_err!("makechrootpkg failed"))
+            Err(anyhow::anyhow!("makechrootpkg failed"))
         }
     }
 }
@@ -105,7 +105,7 @@ impl<'a> Builder<'a> {
         package_dir: P,
         repo_dir: Q,
         chroot_helper: &ChrootHelper,
-    ) -> Result<Vec<std::path::PathBuf>, failure::Error>
+    ) -> Result<Vec<std::path::PathBuf>, anyhow::Error>
     where
         P: AsRef<std::path::Path>,
         Q: AsRef<std::path::Path>,

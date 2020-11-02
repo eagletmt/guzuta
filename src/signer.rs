@@ -8,7 +8,7 @@ impl<'a> Signer<'a> {
         Signer { key }
     }
 
-    pub fn sign<P, Q>(&self, path: P, sig_path: Q) -> Result<(), failure::Error>
+    pub fn sign<P, Q>(&self, path: P, sig_path: Q) -> Result<(), anyhow::Error>
     where
         P: AsRef<std::path::Path>,
         Q: AsRef<std::path::Path>,
