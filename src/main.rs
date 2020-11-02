@@ -148,54 +148,6 @@ async fn main() {
                 ),
         )
         .subcommand(
-            clap::SubCommand::with_name("abs-add")
-                .about("Add source package to abs tarball")
-                .arg(
-                    clap::Arg::with_name("srcdest")
-                        .long("srcdest")
-                        .takes_value(true)
-                        .help("Path to the directory to store sources"),
-                )
-                .arg(
-                    clap::Arg::with_name("repo-name")
-                        .long("repo-name")
-                        .takes_value(true)
-                        .required(true)
-                        .help("Repository name"),
-                )
-                .arg(
-                    clap::Arg::with_name("PACKAGE_DIR")
-                        .required(true)
-                        .help("Path to the directory containing PKGBUILD"),
-                )
-                .arg(
-                    clap::Arg::with_name("ABS_PATH")
-                        .required(true)
-                        .help("Path to abs tarball"),
-                ),
-        )
-        .subcommand(
-            clap::SubCommand::with_name("abs-remove")
-                .about("Remove source package from abs tarball")
-                .arg(
-                    clap::Arg::with_name("repo-name")
-                        .long("repo-name")
-                        .takes_value(true)
-                        .required(true)
-                        .help("Repository name"),
-                )
-                .arg(
-                    clap::Arg::with_name("PACKAGE_NAME")
-                        .required(true)
-                        .help("Package name to be removed"),
-                )
-                .arg(
-                    clap::Arg::with_name("ABS_PATH")
-                        .required(true)
-                        .help("Path to abs tarball"),
-                ),
-        )
-        .subcommand(
             clap::SubCommand::with_name("omakase")
                 .about("Manage repository with S3")
                 .subcommand(
@@ -228,12 +180,6 @@ async fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches<'_>>)) {
         }
         ("files-remove", Some(files_remove_command)) => {
             files_remove(files_remove_command);
-        }
-        ("abs-add", Some(abs_add_command)) => {
-            abs_add(abs_add_command);
-        }
-        ("abs-remove", Some(abs_remove_command)) => {
-            abs_remove(abs_remove_command);
         }
         ("omakase", Some(omakase_command)) => match omakase_command.subcommand() {
             ("build", Some(build_command)) => {
@@ -309,9 +255,6 @@ fn build(args: &clap::ArgMatches) {
             files_repo.path().display()
         )
     });
-    let mut abs_path = repo_dir.join(repo_name).into_os_string();
-    abs_path.push(".abs.tar.gz");
-    let abs = guzuta::Abs::new(repo_name, abs_path);
 
     let package_paths = builder
         .build_package(package_dir, repo_dir, &chroot)
@@ -324,13 +267,6 @@ fn build(args: &clap::ArgMatches) {
         files_repo.add(&package);
     }
 
-    abs.add(package_dir, srcdest).unwrap_or_else(|_| {
-        panic!(
-            "Unable to add {} to abs tarball {}",
-            package_dir,
-            abs.path().display()
-        )
-    });
     db_repo.save(false).unwrap_or_else(|_| {
         panic!(
             "Unable to save database repository to {}",
@@ -469,49 +405,6 @@ fn files_remove(args: &clap::ArgMatches) {
     });
 }
 
-fn abs_add(args: &clap::ArgMatches) {
-    let srcdest = std::path::PathBuf::from(args.value_of("srcdest").unwrap_or("."));
-    let repo_name = args
-        .value_of("repo-name")
-        .expect("Unable to get --repo-name option");
-    let package_dir = args
-        .value_of("PACKAGE_DIR")
-        .expect("Unable to get PACKAGE_DIR argument");
-    let abs_path = args
-        .value_of("ABS_PATH")
-        .expect("Unable to get ABS_PATH argument");
-
-    let abs = guzuta::Abs::new(repo_name, abs_path);
-    abs.add(package_dir, srcdest).unwrap_or_else(|_| {
-        panic!(
-            "Unable to add {} to abs tarball {}",
-            package_dir,
-            abs.path().display()
-        )
-    });
-}
-
-fn abs_remove(args: &clap::ArgMatches) {
-    let repo_name = args
-        .value_of("repo-name")
-        .expect("Unable to get --repo-name option");
-    let package_name = args
-        .value_of("PACKAGE_NAME")
-        .expect("Unable to get PACKAGE_NAME argument");
-    let abs_path = args
-        .value_of("ABS_PATH")
-        .expect("Unable to get ABS_PATH argument");
-
-    let abs = guzuta::Abs::new(repo_name, abs_path);
-    abs.remove(package_name).unwrap_or_else(|_| {
-        panic!(
-            "Unable to remove {} from abs tarball {}",
-            package_name,
-            abs.path().display()
-        )
-    });
-}
-
 async fn omakase_build(args: &clap::ArgMatches<'_>) {
     let package_name = args
         .value_of("PACKAGE_NAME")
@@ -536,7 +429,6 @@ async fn omakase_build(args: &clap::ArgMatches<'_>) {
         let repo_dir = config.repo_dir(arch);
         let db_path = config.db_path(arch);
         let files_path = config.files_path(arch);
-        let abs_path = config.abs_path(arch);
         let package_dir = config.package_dir(package_name);
 
         std::fs::create_dir_all(repo_dir.as_path()).unwrap_or_else(|_| {
@@ -554,7 +446,6 @@ async fn omakase_build(args: &clap::ArgMatches<'_>) {
 
         let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
         let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
-        let abs = guzuta::Abs::new(&config.name, abs_path);
         db_repo.load().unwrap_or_else(|_| {
             panic!(
                 "Unable to load database repository from {}",
@@ -583,14 +474,6 @@ async fn omakase_build(args: &clap::ArgMatches<'_>) {
             files_repo.add(&package);
         }
 
-        abs.add(package_dir.as_path(), &config.srcdest)
-            .unwrap_or_else(|_| {
-                panic!(
-                    "Unable to add {} to abs tarball {}",
-                    package_dir.as_path().display(),
-                    abs.path().display()
-                )
-            });
         db_repo.save(false).unwrap_or_else(|_| {
             panic!(
                 "Unable to save database repository to {}",
@@ -629,7 +512,6 @@ async fn omakase_remove(args: &clap::ArgMatches<'_>) {
     for arch in config.builds.keys() {
         let db_path = config.db_path(arch);
         let files_path = config.files_path(arch);
-        let abs_path = config.abs_path(arch);
 
         if let Some(ref s3) = s3 {
             s3.download_repository(&config, arch)
@@ -639,7 +521,6 @@ async fn omakase_remove(args: &clap::ArgMatches<'_>) {
 
         let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
         let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
-        let abs = guzuta::Abs::new(&config.name, abs_path);
         db_repo.load().unwrap_or_else(|_| {
             panic!(
                 "Unable to load database repository from {}",
@@ -655,13 +536,6 @@ async fn omakase_remove(args: &clap::ArgMatches<'_>) {
 
         db_repo.remove(package_name);
         files_repo.remove(package_name);
-        abs.remove(package_name).unwrap_or_else(|_| {
-            panic!(
-                "Unable to remove {} from abs tarball {}",
-                package_name,
-                abs.path().display()
-            )
-        });
         db_repo.save(false).unwrap_or_else(|_| {
             panic!(
                 "Unable to save database repository to {}",
