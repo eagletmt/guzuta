@@ -10,16 +10,16 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-base64 = "0.12"
+base64 = "0.13"
 clap = "2.33"
-env_logger = "0.7"
+env_logger = "0.8"
 failure = "0.1"
 flate2 = "1.0"
 futures = "0.3"
 gpgme = "0.9"
 log = "0.4"
-rusoto_core = { version = "0.43", default-features = false, features = ["rustls"] }
-rusoto_s3 = { version = "0.43", default-features = false, features = ["rustls"] }
+rusoto_core = { version = "0.45", default-features = false, features = ["rustls"] }
+rusoto_s3 = { version = "0.45", default-features = false, features = ["rustls"] }
 rust-crypto = "0.2"
 rust-lzma = "0.5"
 serde = "1.0"
