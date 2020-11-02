@@ -44,14 +44,13 @@ impl<'de> serde::Deserialize<'de> for Region {
             where
                 E: serde::de::Error,
             {
-                use std::error::Error;
                 use std::str::FromStr;
 
                 match rusoto_core::Region::from_str(v) {
                     Ok(r) => Ok(Region(r)),
                     Err(e) => Err(serde::de::Error::invalid_value(
                         serde::de::Unexpected::Str(v),
-                        &e.description(),
+                        &format!("{}", e).as_str(),
                     )),
                 }
             }
