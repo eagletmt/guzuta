@@ -12,7 +12,7 @@ PKGBUILD
 % guzuta build foo --repo-dir repo/x86_64 --repo-name bar --arch x86_64
 (snip)
 % ls repo/x86_64
-bar.abs.tar.gz  bar.db  bar.files  foo-1.0.0-1-x86_64.pkg.tar.xz
+bar.db  bar.files  foo-1.0.0-1-x86_64.pkg.tar.xz
 ```
 
 With full options:
@@ -20,7 +20,7 @@ With full options:
 % guzuta build --chroot-dir /var/cache/guzuta/chroot-x86_64 --repo-dir repo/x86_64 --repo-name bar --arch x86_64 --package-key $GPGKEY --repo-key $GPGKEY --srcdest sources --logdest logs foo
 (snip)
 % ls repo/x86_64
-bar.abs.tar.gz  bar.db  bar.db.sig  bar.files  bar.files.sig  foo-1.0.0-1-x86_64.pkg.tar.xz  foo-1.0.0-1-x86_64.pkg.tar.xz.sig
+bar.db  bar.db.sig  bar.files  bar.files.sig  foo-1.0.0-1-x86_64.pkg.tar.xz  foo-1.0.0-1-x86_64.pkg.tar.xz.sig
 % ls sources
 foo-1.0.0.tar.gz
 % ls logs
@@ -68,7 +68,6 @@ foo
     `-- x86_64
         |-- bar-1.0.0-1-x86_64.pkg.tar.xz
         |-- bar-1.0.0-1-x86_64.pkg.tar.xz.sig
-        |-- foo.abs.tar.gz
         |-- foo.db
         |-- foo.db.sig
         `-- foo.files

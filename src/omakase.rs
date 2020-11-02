@@ -86,12 +86,6 @@ impl Config {
         std::path::PathBuf::from(path)
     }
 
-    pub fn abs_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
-        let mut path = self.repo_dir(arch).join(&self.name).into_os_string();
-        path.push(".abs.tar.gz");
-        std::path::PathBuf::from(path)
-    }
-
     pub fn package_dir(&self, package_name: &str) -> std::path::PathBuf {
         std::path::PathBuf::from(&self.pkgbuild).join(package_name)
     }
@@ -118,8 +112,7 @@ impl S3 {
         arch: &super::builder::Arch,
     ) -> Result<(), failure::Error> {
         self.get(config.db_path(arch)).await?;
-        self.get(config.files_path(arch)).await?;
-        self.get(config.abs_path(arch)).await
+        self.get(config.files_path(arch)).await
     }
 
     pub async fn upload_repository<P>(
@@ -143,7 +136,6 @@ impl S3 {
                 self.put(sig_path, SIG_MIME_TYPE).await?;
             }
         }
-        self.put(config.abs_path(arch), GZIP_MIME_TYPE).await?;
         self.put(config.files_path(arch), GZIP_MIME_TYPE).await?;
         let db_path = config.db_path(arch);
         self.put(&db_path, GZIP_MIME_TYPE).await?;
