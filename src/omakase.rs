@@ -185,20 +185,23 @@ impl S3 {
     where
         P: AsRef<std::path::Path>,
     {
+        use futures::FutureExt as _;
+        use futures::TryStreamExt as _;
         use rusoto_s3::S3;
-        use std::io::Read;
 
         let path = path.as_ref();
-        // FIXME: need streaming for large files
-        // https://github.com/rusoto/rusoto/issues/1028#issuecomment-385361094
-        let mut file = std::fs::File::open(path)?;
-        let mut body = vec![];
-        file.read_to_end(&mut body)?;
+        let metadata = tokio::fs::metadata(path).await?;
+        let stream = rusoto_s3::StreamingBody::new(
+            tokio::fs::read(path.to_owned())
+                .into_stream()
+                .map_ok(|b| bytes::Bytes::from(b)),
+        );
         let request = rusoto_s3::PutObjectRequest {
             bucket: self.bucket.to_owned(),
             key: path.to_string_lossy().into_owned(),
             content_type: Some(content_type.to_owned()),
-            body: Some(body.into()),
+            content_length: Some(metadata.len() as i64),
+            body: Some(stream),
             ..Default::default()
         };
         println!("Upload {}", path.display());
