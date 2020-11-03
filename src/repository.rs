@@ -164,7 +164,7 @@ impl<'a> Repository<'a> {
         self.entries.remove(package_name);
     }
 
-    pub fn save(&self, include_files: bool) -> Result<(), anyhow::Error> {
+    pub async fn save(&self, include_files: bool) -> Result<(), anyhow::Error> {
         let mut tmp_path = self.path.clone().into_os_string();
         tmp_path.push(".progress");
         let file = std::fs::File::create(&tmp_path)?;
@@ -213,7 +213,7 @@ impl<'a> Repository<'a> {
         if let Some(signer) = self.signer {
             let mut sig_path = self.path.clone().into_os_string();
             sig_path.push(".sig");
-            signer.sign(&tmp_path, sig_path)?;
+            signer.sign(&tmp_path, sig_path).await?;
         }
 
         std::fs::rename(&tmp_path, &self.path)?;

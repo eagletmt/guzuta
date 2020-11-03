@@ -39,7 +39,7 @@ impl<'a> ChrootHelper<'a> {
         ChrootHelper { chroot_dir, arch }
     }
 
-    pub fn makechrootpkg<P, Q, R, S>(
+    pub async fn makechrootpkg<P, Q, R, S>(
         &self,
         package_dir: P,
         srcdest: Q,
@@ -61,7 +61,7 @@ impl<'a> ChrootHelper<'a> {
         let mut logdest_arg = std::ffi::OsString::from("LOGDEST=");
         logdest_arg.push(current_dir.join(logdest));
 
-        let mut cmd = std::process::Command::new("sudo");
+        let mut cmd = tokio::process::Command::new("sudo");
         cmd.current_dir(package_dir)
             .arg("env")
             .arg(srcdest_arg)
@@ -71,7 +71,7 @@ impl<'a> ChrootHelper<'a> {
             .arg("-cur")
             .arg(current_dir.join(self.chroot_dir));
         log::info!("{:?}", cmd);
-        let status = cmd.status()?;
+        let status = cmd.status().await?;
         if status.success() {
             Ok(())
         } else {
@@ -100,11 +100,11 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn build_package<P, Q>(
+    pub async fn build_package<P, Q>(
         &self,
         package_dir: P,
         repo_dir: Q,
-        chroot_helper: &ChrootHelper,
+        chroot_helper: &ChrootHelper<'a>,
     ) -> Result<Vec<std::path::PathBuf>, anyhow::Error>
     where
         P: AsRef<std::path::Path>,
@@ -113,25 +113,34 @@ impl<'a> Builder<'a> {
         let package_dir = package_dir.as_ref();
         let tempdir = tempdir::TempDir::new("guzuta-pkgdest")?;
         let pkgdest = tempdir.path();
-        chroot_helper.makechrootpkg(package_dir, self.srcdest, pkgdest, self.logdest)?;
-        let mut paths = vec![];
-        for entry in std::fs::read_dir(pkgdest)? {
-            let entry = entry?;
-            let symlink_package_path = package_dir.join(entry.file_name());
-            if symlink_package_path.read_link().is_ok() {
-                // Unlink symlink created by makechrootpkg
-                log::info!("Unlink symlink {}", symlink_package_path.display());
-                std::fs::remove_file(symlink_package_path)?;
-            }
+        chroot_helper
+            .makechrootpkg(package_dir, self.srcdest, pkgdest, self.logdest)
+            .await?;
+        let mut dir = tokio::fs::read_dir(pkgdest).await?;
+        let mut futures_unordered = futures::stream::FuturesUnordered::new();
+        while let Some(entry) = dir.next_entry().await? {
             let dest = repo_dir.as_ref().join(entry.file_name());
-            log::info!("Copy {} to {}", entry.path().display(), dest.display());
-            std::fs::copy(entry.path(), &dest)?;
-            if let Some(signer) = self.signer {
-                let mut sig_dest = dest.clone().into_os_string();
-                sig_dest.push(".sig");
-                signer.sign(&dest, sig_dest)?;
-            }
-            paths.push(dest);
+            futures_unordered.push(async move {
+                let symlink_package_path = package_dir.join(entry.file_name());
+                if symlink_package_path.read_link().is_ok() {
+                    // Unlink symlink created by makechrootpkg
+                    log::info!("Unlink symlink {}", symlink_package_path.display());
+                    tokio::fs::remove_file(symlink_package_path).await?;
+                }
+                log::info!("Copy {} to {}", entry.path().display(), dest.display());
+                tokio::fs::copy(entry.path(), &dest).await?;
+                if let Some(signer) = self.signer {
+                    let mut sig_dest = dest.clone().into_os_string();
+                    sig_dest.push(".sig");
+                    signer.sign(&dest, sig_dest).await?;
+                }
+                Ok::<_, anyhow::Error>(dest)
+            });
+        }
+        use futures::StreamExt as _;
+        let mut paths = vec![];
+        while let Some(path) = futures_unordered.next().await {
+            paths.push(path?);
         }
         Ok(paths)
     }

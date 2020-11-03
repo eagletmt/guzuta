@@ -168,18 +168,18 @@ async fn main() {
 
 async fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches<'_>>)) {
     match subcommand {
-        ("build", Some(build_command)) => build(build_command),
+        ("build", Some(build_command)) => build(build_command).await,
         ("repo-add", Some(repo_add_command)) => {
-            repo_add(repo_add_command);
+            repo_add(repo_add_command).await;
         }
         ("repo-remove", Some(repo_remove_command)) => {
-            repo_remove(repo_remove_command);
+            repo_remove(repo_remove_command).await;
         }
         ("files-add", Some(files_add_command)) => {
-            files_add(files_add_command);
+            files_add(files_add_command).await;
         }
         ("files-remove", Some(files_remove_command)) => {
-            files_remove(files_remove_command);
+            files_remove(files_remove_command).await;
         }
         ("omakase", Some(omakase_command)) => match omakase_command.subcommand() {
             ("build", Some(build_command)) => {
@@ -198,7 +198,7 @@ async fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches<'_>>)) {
     }
 }
 
-fn build(args: &clap::ArgMatches) {
+async fn build(args: &clap::ArgMatches<'_>) {
     let arch = match args.value_of("arch").expect("Unable to get --arch option") {
         "i686" => guzuta::Arch::I686,
         "x86_64" => guzuta::Arch::X86_64,
@@ -258,6 +258,7 @@ fn build(args: &clap::ArgMatches) {
 
     let package_paths = builder
         .build_package(package_dir, repo_dir, &chroot)
+        .await
         .unwrap_or_else(|_| panic!("Unable to build package in {}", package_dir));
 
     for path in package_paths {
@@ -267,13 +268,13 @@ fn build(args: &clap::ArgMatches) {
         files_repo.add(&package);
     }
 
-    db_repo.save(false).unwrap_or_else(|_| {
+    db_repo.save(false).await.unwrap_or_else(|_| {
         panic!(
             "Unable to save database repository to {}",
             db_repo.path().display()
         )
     });
-    files_repo.save(true).unwrap_or_else(|_| {
+    files_repo.save(true).await.unwrap_or_else(|_| {
         panic!(
             "Unable to save files repository to {}",
             files_repo.path().display()
@@ -281,7 +282,7 @@ fn build(args: &clap::ArgMatches) {
     });
 }
 
-fn repo_add(args: &clap::ArgMatches) {
+async fn repo_add(args: &clap::ArgMatches<'_>) {
     let signer = args
         .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
@@ -305,7 +306,7 @@ fn repo_add(args: &clap::ArgMatches) {
         )
     });
     repository.add(&package);
-    repository.save(false).unwrap_or_else(|_| {
+    repository.save(false).await.unwrap_or_else(|_| {
         panic!(
             "Unable to save database repository to {}",
             repository.path().display()
@@ -313,7 +314,7 @@ fn repo_add(args: &clap::ArgMatches) {
     });
 }
 
-fn repo_remove(args: &clap::ArgMatches) {
+async fn repo_remove(args: &clap::ArgMatches<'_>) {
     let signer = args
         .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
@@ -335,7 +336,7 @@ fn repo_remove(args: &clap::ArgMatches) {
         )
     });
     repository.remove(package_name);
-    repository.save(false).unwrap_or_else(|_| {
+    repository.save(false).await.unwrap_or_else(|_| {
         panic!(
             "Unable to save database repository to {}",
             repository.path().display()
@@ -343,7 +344,7 @@ fn repo_remove(args: &clap::ArgMatches) {
     });
 }
 
-fn files_add(args: &clap::ArgMatches) {
+async fn files_add(args: &clap::ArgMatches<'_>) {
     let signer = args
         .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
@@ -367,7 +368,7 @@ fn files_add(args: &clap::ArgMatches) {
         )
     });
     repository.add(&package);
-    repository.save(true).unwrap_or_else(|_| {
+    repository.save(true).await.unwrap_or_else(|_| {
         panic!(
             "Unable to save files repository to {}",
             repository.path().display()
@@ -375,7 +376,7 @@ fn files_add(args: &clap::ArgMatches) {
     });
 }
 
-fn files_remove(args: &clap::ArgMatches) {
+async fn files_remove(args: &clap::ArgMatches<'_>) {
     let signer = args
         .value_of("repo-key")
         .map(|key| guzuta::Signer::new(key));
@@ -397,7 +398,7 @@ fn files_remove(args: &clap::ArgMatches) {
         )
     });
     repository.remove(package_name);
-    repository.save(true).unwrap_or_else(|_| {
+    repository.save(true).await.unwrap_or_else(|_| {
         panic!(
             "Unable to save files repository to {}",
             repository.path().display()
@@ -461,6 +462,7 @@ async fn omakase_build(args: &clap::ArgMatches<'_>) {
 
         let package_paths = builder
             .build_package(package_dir.as_path(), repo_dir, &chroot)
+            .await
             .unwrap_or_else(|_| {
                 panic!(
                     "Unable to build package in {}",
@@ -474,13 +476,13 @@ async fn omakase_build(args: &clap::ArgMatches<'_>) {
             files_repo.add(&package);
         }
 
-        db_repo.save(false).unwrap_or_else(|_| {
+        db_repo.save(false).await.unwrap_or_else(|_| {
             panic!(
                 "Unable to save database repository to {}",
                 db_repo.path().display()
             )
         });
-        files_repo.save(true).unwrap_or_else(|_| {
+        files_repo.save(true).await.unwrap_or_else(|_| {
             panic!(
                 "Unable to save files repository to {}",
                 files_repo.path().display()
@@ -536,13 +538,13 @@ async fn omakase_remove(args: &clap::ArgMatches<'_>) {
 
         db_repo.remove(package_name);
         files_repo.remove(package_name);
-        db_repo.save(false).unwrap_or_else(|_| {
+        db_repo.save(false).await.unwrap_or_else(|_| {
             panic!(
                 "Unable to save database repository to {}",
                 db_repo.path().display()
             )
         });
-        files_repo.save(true).unwrap_or_else(|_| {
+        files_repo.save(true).await.unwrap_or_else(|_| {
             panic!(
                 "Unable to save files repository to {}",
                 files_repo.path().display()
