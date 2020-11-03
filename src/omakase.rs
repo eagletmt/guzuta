@@ -124,11 +124,24 @@ impl S3 {
         P: AsRef<std::path::Path>,
     {
         const XZ_MIME_TYPE: &str = "application/x-xz";
+        const ZST_MIME_TYPE: &str = "application/zstd";
+        const OCTET_STREAM_MIME_TYPE: &str = "application/octet-stream";
         const SIG_MIME_TYPE: &str = "application/pgp-signature";
         const GZIP_MIME_TYPE: &str = "application/gzip";
 
         for package_path in package_paths {
-            self.put(package_path, XZ_MIME_TYPE).await?;
+            let mime_type = if let Some(ext) = package_path.as_ref().extension() {
+                if ext == "zst" {
+                    ZST_MIME_TYPE
+                } else if ext == "xz" {
+                    XZ_MIME_TYPE
+                } else {
+                    OCTET_STREAM_MIME_TYPE
+                }
+            } else {
+                OCTET_STREAM_MIME_TYPE
+            };
+            self.put(package_path, mime_type).await?;
             if config.package_key.is_some() {
                 let mut sig_path = package_path.as_ref().as_os_str().to_os_string();
                 sig_path.push(".sig");
