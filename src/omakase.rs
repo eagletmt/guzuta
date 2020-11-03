@@ -194,7 +194,7 @@ impl S3 {
         let stream = rusoto_s3::StreamingBody::new(
             tokio::fs::read(path.to_owned())
                 .into_stream()
-                .map_ok(|b| bytes::Bytes::from(b)),
+                .map_ok(bytes::Bytes::from),
         );
         let request = rusoto_s3::PutObjectRequest {
             bucket: self.bucket.to_owned(),
