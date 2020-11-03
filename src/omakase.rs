@@ -151,10 +151,8 @@ impl S3 {
         P: AsRef<std::path::Path>,
     {
         use rusoto_s3::S3;
-        use std::io::Write;
 
         let path = path.as_ref();
-        let mut file = std::fs::File::create(path)?;
         let request = rusoto_s3::GetObjectRequest {
             bucket: self.bucket.to_owned(),
             key: path.to_string_lossy().into_owned(),
@@ -163,14 +161,16 @@ impl S3 {
         println!("Download {}", path.display());
         match self.client.get_object(request).await {
             Ok(output) => {
-                if let Some(body) = output.body {
-                    use futures::StreamExt;
-                    body.for_each(|buf| {
-                        let bytes = buf.unwrap();
-                        file.write_all(&bytes[..]).unwrap();
-                        futures::future::ready(())
-                    })
-                    .await;
+                if let Some(mut body) = output.body {
+                    use futures::StreamExt as _;
+                    use tokio::io::AsyncWriteExt as _;
+
+                    let file = tokio::fs::File::create(path).await?;
+                    let mut writer = tokio::io::BufWriter::new(file);
+                    while let Some(item) = body.next().await {
+                        writer.write_all(&item?).await?;
+                    }
+                    writer.shutdown().await?;
                 }
                 Ok(())
             }
