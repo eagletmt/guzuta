@@ -110,8 +110,12 @@ impl S3 {
         config: &Config,
         arch: &super::builder::Arch,
     ) -> Result<(), anyhow::Error> {
-        self.get(config.db_path(arch)).await?;
-        self.get(config.files_path(arch)).await
+        let (r1, r2) = futures::join!(
+            self.get(config.db_path(arch)),
+            self.get(config.files_path(arch))
+        );
+        r1?;
+        r2
     }
 
     pub async fn upload_repository<P>(
@@ -129,6 +133,7 @@ impl S3 {
         const SIG_MIME_TYPE: &str = "application/pgp-signature";
         const GZIP_MIME_TYPE: &str = "application/gzip";
 
+        let mut futures_unordered = futures::stream::FuturesUnordered::new();
         for package_path in package_paths {
             let mime_type = if let Some(ext) = package_path.as_ref().extension() {
                 if ext == "zst" {
@@ -141,20 +146,24 @@ impl S3 {
             } else {
                 OCTET_STREAM_MIME_TYPE
             };
-            self.put(package_path, mime_type).await?;
+            futures_unordered.push(self.put(package_path.as_ref().to_owned(), mime_type));
             if config.package_key.is_some() {
                 let mut sig_path = package_path.as_ref().as_os_str().to_os_string();
                 sig_path.push(".sig");
-                self.put(&sig_path, SIG_MIME_TYPE).await?;
+                futures_unordered.push(self.put(std::path::PathBuf::from(sig_path), SIG_MIME_TYPE));
             }
         }
-        self.put(config.files_path(arch), GZIP_MIME_TYPE).await?;
+        futures_unordered.push(self.put(config.files_path(arch), GZIP_MIME_TYPE));
         let db_path = config.db_path(arch);
-        self.put(&db_path, GZIP_MIME_TYPE).await?;
+        futures_unordered.push(self.put(db_path.to_owned(), GZIP_MIME_TYPE));
         if config.repo_key.is_some() {
-            let mut sig_path = db_path.clone().into_os_string();
+            let mut sig_path = db_path.into_os_string();
             sig_path.push(".sig");
-            self.put(sig_path, SIG_MIME_TYPE).await?;
+            futures_unordered.push(self.put(std::path::PathBuf::from(sig_path), SIG_MIME_TYPE));
+        }
+        use futures::StreamExt as _;
+        while let Some(result) = futures_unordered.next().await {
+            result?;
         }
         Ok(())
     }
