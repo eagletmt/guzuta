@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde_derive::Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum Arch {
@@ -128,7 +130,9 @@ impl<'a> Builder<'a> {
                     tokio::fs::remove_file(symlink_package_path).await?;
                 }
                 log::info!("Copy {} to {}", entry.path().display(), dest.display());
-                tokio::fs::copy(entry.path(), &dest).await?;
+                tokio::fs::copy(entry.path(), &dest)
+                    .await
+                    .with_context(|| format!("Unable to copy file {:?} to {:?}", entry.path(), dest))?;
                 if let Some(signer) = self.signer {
                     let mut sig_dest = dest.clone().into_os_string();
                     sig_dest.push(".sig");

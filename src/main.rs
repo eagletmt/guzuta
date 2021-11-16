@@ -1,5 +1,7 @@
+use anyhow::{Result, Context};
+
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     env_logger::init();
 
     let app = clap::App::new("guzuta")
@@ -163,12 +165,12 @@ async fn main() {
         );
     let matches = app.get_matches();
 
-    run_subcommand(matches.subcommand()).await;
+    run_subcommand(matches.subcommand()).await
 }
 
-async fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches<'_>>)) {
+async fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches<'_>>)) -> Result<()> {
     match subcommand {
-        ("build", Some(build_command)) => build(build_command).await,
+        ("build", Some(build_command)) => build(build_command).await?,
         ("repo-add", Some(repo_add_command)) => {
             repo_add(repo_add_command).await;
         }
@@ -195,10 +197,12 @@ async fn run_subcommand(subcommand: (&str, Option<&clap::ArgMatches<'_>>)) {
         _ => {
             panic!("Unknown subcommand");
         }
-    }
+    };
+
+    Ok(())
 }
 
-async fn build(args: &clap::ArgMatches<'_>) {
+async fn build(args: &clap::ArgMatches<'_>) -> Result<()> {
     let arch = match args.value_of("arch").expect("Unable to get --arch option") {
         "i686" => guzuta::Arch::I686,
         "x86_64" => guzuta::Arch::X86_64,
@@ -243,23 +247,23 @@ async fn build(args: &clap::ArgMatches<'_>) {
     files_path.push(".files");
     let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path), repo_signer);
     let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path), repo_signer);
-    db_repo.load().unwrap_or_else(|_| {
-        panic!(
+    db_repo.load().with_context(|| {
+        format!(
             "Unable to load database repository from {}",
             db_repo.path().display()
         )
-    });
-    files_repo.load().unwrap_or_else(|_| {
-        panic!(
+    })?;
+    files_repo.load().with_context(|| {
+        format!(
             "Unable to load files repository from {}",
             files_repo.path().display()
         )
-    });
+    })?;
 
     let package_paths = builder
         .build_package(package_dir, repo_dir, &chroot)
         .await
-        .unwrap_or_else(|_| panic!("Unable to build package in {}", package_dir));
+        .with_context(|| format!("Unable to build package in {}", package_dir))?;
 
     for path in package_paths {
         let package = guzuta::Package::load(&path)
@@ -280,6 +284,8 @@ async fn build(args: &clap::ArgMatches<'_>) {
             files_repo.path().display()
         )
     });
+
+    Ok(())
 }
 
 async fn repo_add(args: &clap::ArgMatches<'_>) {
