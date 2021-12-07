@@ -1,4 +1,4 @@
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
