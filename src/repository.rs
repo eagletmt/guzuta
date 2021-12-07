@@ -24,6 +24,7 @@ pub struct Desc {
     // https://git.archlinux.org/pacman.git/commit/?id=b520c6312ff0ffec864576b5218f1638fae1e18b
     conflicts: Vec<String>,
     provides: Vec<String>,
+    #[allow(dead_code)]
     backups: Vec<String>,
     depends: Vec<String>,
     makedepends: Vec<String>,
@@ -311,7 +312,7 @@ impl<'a> Iterator for EachEntry<'a> {
     type Item = (&'a str, &'a str);
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(line) = self.lines.next() {
+        for line in self.lines.by_ref() {
             let line = line.trim();
             if line.starts_with('%') && line.ends_with('%') {
                 self.key = &line[1..line.len() - 1];

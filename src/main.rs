@@ -217,9 +217,7 @@ async fn build(args: &clap::ArgMatches<'_>) -> Result<()> {
             .expect("Unable to get --chroot-dir option"),
         arch,
     );
-    let package_signer = args
-        .value_of("package-key")
-        .map(|key| guzuta::Signer::new(key));
+    let package_signer = args.value_of("package-key").map(guzuta::Signer::new);
     let srcdest = args.value_of("srcdest").unwrap_or(".");
     let builder = guzuta::Builder::new(
         package_signer.as_ref(),
@@ -237,9 +235,7 @@ async fn build(args: &clap::ArgMatches<'_>) -> Result<()> {
         .value_of("PACKAGE_DIR")
         .expect("Unable to get PACKAGE_DIR argument");
 
-    let repo_signer = args
-        .value_of("repo-key")
-        .map(|key| guzuta::Signer::new(key));
+    let repo_signer = args.value_of("repo-key").map(guzuta::Signer::new);
     let repo_signer = repo_signer.as_ref();
     let mut db_path = repo_dir.join(repo_name).into_os_string();
     db_path.push(".db");
@@ -289,9 +285,7 @@ async fn build(args: &clap::ArgMatches<'_>) -> Result<()> {
 }
 
 async fn repo_add(args: &clap::ArgMatches<'_>) {
-    let signer = args
-        .value_of("repo-key")
-        .map(|key| guzuta::Signer::new(key));
+    let signer = args.value_of("repo-key").map(guzuta::Signer::new);
     let package_path = args
         .value_of("PACKAGE_PATH")
         .expect("Unable to get PACKAGE_PATH argument");
@@ -321,9 +315,7 @@ async fn repo_add(args: &clap::ArgMatches<'_>) {
 }
 
 async fn repo_remove(args: &clap::ArgMatches<'_>) {
-    let signer = args
-        .value_of("repo-key")
-        .map(|key| guzuta::Signer::new(key));
+    let signer = args.value_of("repo-key").map(guzuta::Signer::new);
     let package_name = args
         .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
@@ -351,9 +343,7 @@ async fn repo_remove(args: &clap::ArgMatches<'_>) {
 }
 
 async fn files_add(args: &clap::ArgMatches<'_>) {
-    let signer = args
-        .value_of("repo-key")
-        .map(|key| guzuta::Signer::new(key));
+    let signer = args.value_of("repo-key").map(guzuta::Signer::new);
     let package_path = args
         .value_of("PACKAGE_PATH")
         .expect("Unable to get PACKAGE_PATH argument");
@@ -383,9 +373,7 @@ async fn files_add(args: &clap::ArgMatches<'_>) {
 }
 
 async fn files_remove(args: &clap::ArgMatches<'_>) {
-    let signer = args
-        .value_of("repo-key")
-        .map(|key| guzuta::Signer::new(key));
+    let signer = args.value_of("repo-key").map(guzuta::Signer::new);
     let package_name = args
         .value_of("PACKAGE_NAME")
         .expect("Unable to get PACKAGE_NAME argument");
@@ -426,10 +414,7 @@ async fn omakase_build(args: &clap::ArgMatches<'_>) {
     let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
     let repo_signer = repo_signer.as_ref();
     let builder = guzuta::Builder::new(package_signer.as_ref(), &config.srcdest, &config.logdest);
-    let s3 = config
-        .s3
-        .as_ref()
-        .map(|s3_config| guzuta::omakase::S3::new(s3_config));
+    let s3 = config.s3.as_ref().map(guzuta::omakase::S3::new);
 
     for (arch, build_config) in &config.builds {
         let chroot = guzuta::ChrootHelper::new(&build_config.chroot, arch.clone());
@@ -512,10 +497,7 @@ async fn omakase_remove(args: &clap::ArgMatches<'_>) {
         guzuta::omakase::Config::from_reader(file).expect("Unable to load YAML from .guzuta.yml");
     let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
     let repo_signer = repo_signer.as_ref();
-    let s3 = config
-        .s3
-        .as_ref()
-        .map(|s3_config| guzuta::omakase::S3::new(s3_config));
+    let s3 = config.s3.as_ref().map(guzuta::omakase::S3::new);
 
     for arch in config.builds.keys() {
         let db_path = config.db_path(arch);

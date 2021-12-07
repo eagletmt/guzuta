@@ -33,6 +33,7 @@ impl std::fmt::Display for Arch {
 #[derive(Debug, Clone)]
 pub struct ChrootHelper<'a> {
     chroot_dir: &'a str,
+    #[allow(dead_code)]
     arch: Arch,
 }
 
