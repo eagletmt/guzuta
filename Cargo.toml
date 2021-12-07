@@ -19,8 +19,8 @@ flate2 = "1.0"
 futures = "0.3"
 gpgme = "0.9"
 log = "0.4"
-rusoto_core = { version = "0.45", default-features = false, features = ["rustls"] }
-rusoto_s3 = { version = "0.45", default-features = false, features = ["rustls"] }
+aws-config = "0.2"
+aws-sdk-s3 = "0.2"
 rust-crypto = "0.2"
 rust-lzma = "0.5"
 serde = "1.0"
@@ -28,5 +28,5 @@ serde_derive = "1.0"
 serde_yaml = "0.8"
 tar = "0.4"
 tempdir = "0.3"
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "fs"] }
 zstd = "0.5"

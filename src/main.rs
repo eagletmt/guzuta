@@ -414,7 +414,11 @@ async fn omakase_build(args: &clap::ArgMatches<'_>) {
     let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
     let repo_signer = repo_signer.as_ref();
     let builder = guzuta::Builder::new(package_signer.as_ref(), &config.srcdest, &config.logdest);
-    let s3 = config.s3.as_ref().map(guzuta::omakase::S3::new);
+    let s3 = if let Some(ref s3_config) = config.s3 {
+        Some(guzuta::omakase::S3::new(s3_config.clone()).await)
+    } else {
+        None
+    };
 
     for (arch, build_config) in &config.builds {
         let chroot = guzuta::ChrootHelper::new(&build_config.chroot, arch.clone());
@@ -497,7 +501,11 @@ async fn omakase_remove(args: &clap::ArgMatches<'_>) {
         guzuta::omakase::Config::from_reader(file).expect("Unable to load YAML from .guzuta.yml");
     let repo_signer = config.repo_key.as_ref().map(|key| guzuta::Signer::new(key));
     let repo_signer = repo_signer.as_ref();
-    let s3 = config.s3.as_ref().map(guzuta::omakase::S3::new);
+    let s3 = if let Some(ref s3_config) = config.s3 {
+        Some(guzuta::omakase::S3::new(s3_config.clone()).await)
+    } else {
+        None
+    };
 
     for arch in config.builds.keys() {
         let db_path = config.db_path(arch);

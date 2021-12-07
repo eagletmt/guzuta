@@ -15,48 +15,10 @@ pub struct BuildConfig {
     pub chroot: String,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, Clone, serde_derive::Deserialize)]
 pub struct S3Config {
     pub bucket: String,
-    pub region: Region,
-}
-
-#[derive(Debug)]
-pub struct Region(rusoto_core::Region);
-
-impl<'de> serde::Deserialize<'de> for Region {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct Visitor;
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = Region;
-
-            fn expecting(
-                &self,
-                formatter: &mut std::fmt::Formatter,
-            ) -> Result<(), std::fmt::Error> {
-                write!(formatter, "a valid AWS region name")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                use std::str::FromStr;
-
-                match rusoto_core::Region::from_str(v) {
-                    Ok(r) => Ok(Region(r)),
-                    Err(e) => Err(serde::de::Error::invalid_value(
-                        serde::de::Unexpected::Str(v),
-                        &format!("{}", e).as_str(),
-                    )),
-                }
-            }
-        }
-        deserializer.deserialize_str(Visitor {})
-    }
+    pub region: String,
 }
 
 impl Config {
@@ -91,17 +53,20 @@ impl Config {
 }
 
 pub struct S3 {
-    client: rusoto_s3::S3Client,
+    client: aws_sdk_s3::Client,
     bucket: String,
 }
 
 impl S3 {
-    pub fn new(config: &S3Config) -> Self {
-        let Region(ref region) = config.region;
-        let client = rusoto_s3::S3Client::new(region.clone());
+    pub async fn new(config: S3Config) -> Self {
+        let shared_config = aws_config::load_from_env().await;
+        let conf = aws_sdk_s3::config::Builder::from(&shared_config)
+            .region(Some(aws_sdk_s3::Region::new(config.region)))
+            .build();
+        let client = aws_sdk_s3::Client::from_conf(conf);
         S3 {
             client,
-            bucket: config.bucket.to_owned(),
+            bucket: config.bucket,
         }
     }
 
@@ -172,33 +137,36 @@ impl S3 {
     where
         P: AsRef<std::path::Path>,
     {
-        use rusoto_s3::S3;
-
         let path = path.as_ref();
-        let request = rusoto_s3::GetObjectRequest {
-            bucket: self.bucket.to_owned(),
-            key: path.to_string_lossy().into_owned(),
-            ..rusoto_s3::GetObjectRequest::default()
-        };
         println!("Download {}", path.display());
-        match self.client.get_object(request).await {
-            Ok(output) => {
-                if let Some(mut body) = output.body {
-                    use futures::StreamExt as _;
-                    use tokio::io::AsyncWriteExt as _;
+        match self
+            .client
+            .get_object()
+            .bucket(&self.bucket)
+            .key(path.to_string_lossy())
+            .send()
+            .await
+        {
+            Ok(mut output) => {
+                use futures::StreamExt as _;
+                use tokio::io::AsyncWriteExt as _;
 
-                    let file = tokio::fs::File::create(path).await?;
-                    let mut writer = tokio::io::BufWriter::new(file);
-                    while let Some(item) = body.next().await {
-                        writer.write_all(&item?).await?;
-                    }
-                    writer.shutdown().await?;
+                let file = tokio::fs::File::create(path).await?;
+                let mut writer = tokio::io::BufWriter::new(file);
+                while let Some(item) = output.body.next().await {
+                    writer.write_all(&item?).await?;
                 }
+                writer.shutdown().await?;
                 Ok(())
             }
-            Err(rusoto_core::RusotoError::Service(rusoto_s3::GetObjectError::NoSuchKey(_))) => {
-                Ok(())
-            }
+            Err(aws_sdk_s3::SdkError::ServiceError {
+                err:
+                    aws_sdk_s3::error::GetObjectError {
+                        kind: aws_sdk_s3::error::GetObjectErrorKind::NoSuchKey(_),
+                        ..
+                    },
+                ..
+            }) => Ok(()),
             Err(e) => Err(anyhow::Error::from(e)),
         }
     }
@@ -207,27 +175,19 @@ impl S3 {
     where
         P: AsRef<std::path::Path>,
     {
-        use futures::FutureExt as _;
-        use futures::TryStreamExt as _;
-        use rusoto_s3::S3;
-
         let path = path.as_ref();
         let metadata = tokio::fs::metadata(path).await?;
-        let stream = rusoto_s3::StreamingBody::new(
-            tokio::fs::read(path.to_owned())
-                .into_stream()
-                .map_ok(bytes::Bytes::from),
-        );
-        let request = rusoto_s3::PutObjectRequest {
-            bucket: self.bucket.to_owned(),
-            key: path.to_string_lossy().into_owned(),
-            content_type: Some(content_type.to_owned()),
-            content_length: Some(metadata.len() as i64),
-            body: Some(stream),
-            ..Default::default()
-        };
+        let stream = aws_sdk_s3::ByteStream::from_path(path).await?;
+        let request = self
+            .client
+            .put_object()
+            .bucket(&self.bucket)
+            .key(path.to_string_lossy())
+            .content_type(content_type)
+            .content_length(metadata.len() as i64)
+            .body(stream);
         println!("Upload {}", path.display());
-        self.client.put_object(request).await?;
+        request.send().await?;
         Ok(())
     }
 }
