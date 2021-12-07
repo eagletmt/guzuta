@@ -1,4 +1,4 @@
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct Config {
     pub name: String,
     pub package_key: Option<String>,
@@ -10,12 +10,12 @@ pub struct Config {
     pub s3: Option<S3Config>,
 }
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct BuildConfig {
     pub chroot: String,
 }
 
-#[derive(Debug, Clone, serde_derive::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct S3Config {
     pub bucket: String,
     pub region: String,
