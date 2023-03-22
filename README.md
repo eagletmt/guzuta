@@ -8,11 +8,12 @@ Basic usage: build foo x86_64 package for bar repository.
 ```
 % ls foo
 PKGBUILD
+% mkarchroot chroot/root base-devel
 % mkdir -p repo/x86_64
-% guzuta build foo --repo-dir repo/x86_64 --repo-name bar --arch x86_64
+% guzuta build foo --repo-dir repo/x86_64 --repo-name bar --arch x86_64 --chroot-dir chroot
 (snip)
 % ls repo/x86_64
-bar.db  bar.files  foo-1.0.0-1-x86_64.pkg.tar.xz
+bar.db  bar.files  foo-1.0.0-1-x86_64.pkg.tar.zst
 ```
 
 With full options:
@@ -20,7 +21,7 @@ With full options:
 % guzuta build --chroot-dir /var/cache/guzuta/chroot-x86_64 --repo-dir repo/x86_64 --repo-name bar --arch x86_64 --package-key $GPGKEY --repo-key $GPGKEY --srcdest sources --logdest logs foo
 (snip)
 % ls repo/x86_64
-bar.db  bar.db.sig  bar.files  bar.files.sig  foo-1.0.0-1-x86_64.pkg.tar.xz  foo-1.0.0-1-x86_64.pkg.tar.xz.sig
+bar.db  bar.db.sig  bar.files  bar.files.sig  foo-1.0.0-1-x86_64.pkg.tar.zst  foo-1.0.0-1-x86_64.pkg.tar.zst.sig
 % ls sources
 foo-1.0.0.tar.gz
 % ls logs
@@ -66,8 +67,8 @@ Then build the package.
 foo
 `-- os
     `-- x86_64
-        |-- bar-1.0.0-1-x86_64.pkg.tar.xz
-        |-- bar-1.0.0-1-x86_64.pkg.tar.xz.sig
+        |-- bar-1.0.0-1-x86_64.pkg.tar.zst
+        |-- bar-1.0.0-1-x86_64.pkg.tar.zst.sig
         |-- foo.db
         |-- foo.db.sig
         `-- foo.files
