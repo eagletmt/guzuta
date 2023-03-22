@@ -30,6 +30,22 @@ impl std::fmt::Display for Arch {
     }
 }
 
+impl std::str::FromStr for Arch {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "i686" => Ok(Self::I686),
+            "x86_64" => Ok(Self::X86_64),
+            "arm" => Ok(Self::ARM),
+            "armv6h" => Ok(Self::ARMV6H),
+            "armv7h" => Ok(Self::ARMV7H),
+            "aarch64" => Ok(Self::AARCH64),
+            _ => anyhow::bail!("Unknown architecture: {s}"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ChrootHelper<'a> {
     chroot_dir: &'a str,

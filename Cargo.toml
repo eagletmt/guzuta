@@ -13,7 +13,7 @@ edition = "2018"
 anyhow = "1"
 base64 = "0.21"
 bytes = "1"
-clap = "2"
+clap = { version = "4", features = ["derive"] }
 env_logger = "0.10"
 flate2 = "1"
 futures = "0.3"
