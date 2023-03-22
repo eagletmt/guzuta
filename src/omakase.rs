@@ -159,14 +159,7 @@ impl S3 {
                 writer.shutdown().await?;
                 Ok(())
             }
-            Err(aws_sdk_s3::SdkError::ServiceError {
-                err:
-                    aws_sdk_s3::error::GetObjectError {
-                        kind: aws_sdk_s3::error::GetObjectErrorKind::NoSuchKey(_),
-                        ..
-                    },
-                ..
-            }) => Ok(()),
+            Err(aws_sdk_s3::types::SdkError::ServiceError(e)) if e.err().is_no_such_key() => Ok(()),
             Err(e) => Err(anyhow::Error::from(e)),
         }
     }
@@ -177,7 +170,7 @@ impl S3 {
     {
         let path = path.as_ref();
         let metadata = tokio::fs::metadata(path).await?;
-        let stream = aws_sdk_s3::ByteStream::from_path(path).await?;
+        let stream = aws_sdk_s3::types::ByteStream::from_path(path).await?;
         let request = self
             .client
             .put_object()

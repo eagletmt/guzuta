@@ -11,6 +11,8 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1"
+aws-config = "0.54"
+aws-sdk-s3 = "0.24"
 base64 = "0.21"
 bytes = "1"
 clap = { version = "4", features = ["derive"] }
@@ -19,8 +21,6 @@ flate2 = "1"
 futures = "0.3"
 gpgme = "0.11"
 log = "0.4"
-aws-config = "0.3"
-aws-sdk-s3 = "0.3"
 rust-crypto = "0.2"
 rust-lzma = "0.5"
 serde = { version = "1", features = ["derive"] }
