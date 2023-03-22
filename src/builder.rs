@@ -48,13 +48,13 @@ impl std::str::FromStr for Arch {
 
 #[derive(Debug, Clone)]
 pub struct ChrootHelper<'a> {
-    chroot_dir: &'a str,
+    chroot_dir: &'a std::path::Path,
     #[allow(dead_code)]
     arch: Arch,
 }
 
 impl<'a> ChrootHelper<'a> {
-    pub fn new(chroot_dir: &'a str, arch: Arch) -> Self {
+    pub fn new(chroot_dir: &'a std::path::Path, arch: Arch) -> Self {
         ChrootHelper { chroot_dir, arch }
     }
 
@@ -102,15 +102,15 @@ impl<'a> ChrootHelper<'a> {
 #[derive(Debug, Clone)]
 pub struct Builder<'a> {
     signer: Option<&'a super::signer::Signer<'a>>,
-    srcdest: &'a str,
-    logdest: &'a str,
+    srcdest: &'a std::path::Path,
+    logdest: &'a std::path::Path,
 }
 
 impl<'a> Builder<'a> {
     pub fn new(
         signer: Option<&'a super::signer::Signer<'a>>,
-        srcdest: &'a str,
-        logdest: &'a str,
+        srcdest: &'a std::path::Path,
+        logdest: &'a std::path::Path,
     ) -> Self {
         Builder {
             signer,
@@ -123,7 +123,7 @@ impl<'a> Builder<'a> {
         &self,
         package_dir: P,
         repo_dir: Q,
-        chroot_helper: &ChrootHelper<'a>,
+        chroot_helper: &ChrootHelper<'_>,
     ) -> Result<Vec<std::path::PathBuf>, anyhow::Error>
     where
         P: AsRef<std::path::Path>,

@@ -3,8 +3,8 @@ pub struct Config {
     pub name: String,
     pub package_key: Option<String>,
     pub repo_key: Option<String>,
-    pub srcdest: String,
-    pub logdest: String,
+    pub srcdest: std::path::PathBuf,
+    pub logdest: std::path::PathBuf,
     pub pkgbuild: String,
     pub builds: std::collections::HashMap<super::builder::Arch, BuildConfig>,
     pub s3: Option<S3Config>,
@@ -12,7 +12,7 @@ pub struct Config {
 
 #[derive(Debug, serde::Deserialize)]
 pub struct BuildConfig {
-    pub chroot: String,
+    pub chroot: std::path::PathBuf,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]

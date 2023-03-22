@@ -28,19 +28,19 @@ enum Subcommand {
 struct BuildArgs {
     /// Path to chroot top
     #[arg(long)]
-    chroot_dir: String,
+    chroot_dir: std::path::PathBuf,
     /// GPG key to sign packages
     #[arg(long)]
     package_key: Option<String>,
     /// Path to the directory to store sources
     #[arg(long)]
-    srcdest: Option<String>,
+    srcdest: Option<std::path::PathBuf>,
     /// Path to the directory to store logs
     #[arg(long)]
-    logdest: Option<String>,
+    logdest: Option<std::path::PathBuf>,
     /// Path to the repository directory
     #[arg(long)]
-    repo_dir: String,
+    repo_dir: std::path::PathBuf,
     /// GPG key to sign repository database
     #[arg(long)]
     repo_key: Option<String>,
@@ -51,7 +51,7 @@ struct BuildArgs {
     #[arg(long)]
     repo_name: String,
     ///Path to the directory containing PKGBUILD
-    package_dir: String,
+    package_dir: std::path::PathBuf,
 }
 
 #[derive(Debug, clap::Args)]
@@ -60,9 +60,9 @@ struct RepoAddArgs {
     #[arg(long)]
     repo_key: Option<String>,
     /// Path to package to be added
-    package_path: String,
+    package_path: std::path::PathBuf,
     /// Path to repository database
-    db_path: String,
+    db_path: std::path::PathBuf,
 }
 
 #[derive(Debug, clap::Args)]
@@ -73,7 +73,7 @@ struct RepoRemoveArgs {
     /// Package name to be removed
     package_name: String,
     /// Path to repository database
-    db_path: String,
+    db_path: std::path::PathBuf,
 }
 
 #[derive(Debug, clap::Args)]
@@ -82,9 +82,9 @@ struct FilesAddArgs {
     #[arg(long)]
     repo_key: Option<String>,
     /// Path to package to be added
-    package_path: String,
+    package_path: std::path::PathBuf,
     /// Path to repository database
-    files_path: String,
+    files_path: std::path::PathBuf,
 }
 
 #[derive(Debug, clap::Args)]
@@ -95,7 +95,7 @@ struct FilesRemoveArgs {
     /// Package name to be removed
     package_name: String,
     /// Path to repository database
-    files_path: String,
+    files_path: std::path::PathBuf,
 }
 
 #[derive(Debug, clap::Args)]
@@ -166,19 +166,24 @@ async fn build(args: BuildArgs) -> Result<()> {
         .package_key
         .as_ref()
         .map(|key| guzuta::Signer::new(key.as_str()));
-    let srcdest = args.srcdest.unwrap_or_else(|| String::from("."));
-    let logdest = args.logdest.unwrap_or_else(|| String::from("."));
-    let builder = guzuta::Builder::new(package_signer.as_ref(), &srcdest, &logdest);
-    let repo_dir = std::path::Path::new(&args.repo_dir);
+    let srcdest = args
+        .srcdest
+        .as_deref()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let logdest = args
+        .logdest
+        .as_deref()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let builder = guzuta::Builder::new(package_signer.as_ref(), srcdest, logdest);
 
     let repo_signer = args
         .repo_key
         .as_ref()
         .map(|key| guzuta::Signer::new(key.as_str()));
     let repo_signer = repo_signer.as_ref();
-    let mut db_path = repo_dir.join(&args.repo_name).into_os_string();
+    let mut db_path = args.repo_dir.join(&args.repo_name).into_os_string();
     db_path.push(".db");
-    let mut files_path = repo_dir.join(&args.repo_name).into_os_string();
+    let mut files_path = args.repo_dir.join(&args.repo_name).into_os_string();
     files_path.push(".files");
     let mut db_repo = guzuta::Repository::new(std::path::PathBuf::from(db_path), repo_signer);
     let mut files_repo = guzuta::Repository::new(std::path::PathBuf::from(files_path), repo_signer);
@@ -197,9 +202,9 @@ async fn build(args: BuildArgs) -> Result<()> {
 
     let package_dir = &args.package_dir;
     let package_paths = builder
-        .build_package(package_dir, repo_dir, &chroot)
+        .build_package(package_dir, args.repo_dir, &chroot)
         .await
-        .with_context(|| format!("Unable to build package in {}", package_dir))?;
+        .with_context(|| format!("Unable to build package in {}", package_dir.display()))?;
 
     for path in package_paths {
         let package = guzuta::Package::load(&path)
@@ -231,9 +236,8 @@ async fn repo_add(args: RepoAddArgs) {
         .map(|key| guzuta::Signer::new(key.as_str()));
     let package_path = args.package_path;
     let package = guzuta::Package::load(&package_path)
-        .unwrap_or_else(|_| panic!("Unable to load package {}", package_path));
-    let mut repository =
-        guzuta::Repository::new(std::path::PathBuf::from(args.db_path), signer.as_ref());
+        .unwrap_or_else(|_| panic!("Unable to load package {}", package_path.display()));
+    let mut repository = guzuta::Repository::new(args.db_path, signer.as_ref());
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -255,8 +259,7 @@ async fn repo_remove(args: RepoRemoveArgs) {
         .repo_key
         .as_ref()
         .map(|key| guzuta::Signer::new(key.as_str()));
-    let mut repository =
-        guzuta::Repository::new(std::path::PathBuf::from(args.db_path), signer.as_ref());
+    let mut repository = guzuta::Repository::new(args.db_path, signer.as_ref());
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -280,9 +283,8 @@ async fn files_add(args: FilesAddArgs) {
         .map(|key| guzuta::Signer::new(key.as_str()));
     let package_path = args.package_path;
     let package = guzuta::Package::load(&package_path)
-        .unwrap_or_else(|_| panic!("Unable to load package {}", package_path));
-    let mut repository =
-        guzuta::Repository::new(std::path::PathBuf::from(args.files_path), signer.as_ref());
+        .unwrap_or_else(|_| panic!("Unable to load package {}", package_path.display()));
+    let mut repository = guzuta::Repository::new(args.files_path, signer.as_ref());
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -304,8 +306,7 @@ async fn files_remove(args: FilesRemoveArgs) {
         .repo_key
         .as_ref()
         .map(|key| guzuta::Signer::new(key.as_str()));
-    let mut repository =
-        guzuta::Repository::new(std::path::PathBuf::from(args.files_path), signer.as_ref());
+    let mut repository = guzuta::Repository::new(args.files_path, signer.as_ref());
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -345,8 +346,6 @@ async fn omakase_build(args: OmakaseBuildArgs) {
     for (&arch, build_config) in &config.builds {
         let chroot = guzuta::ChrootHelper::new(&build_config.chroot, arch);
         let repo_dir = config.repo_dir(arch);
-        let db_path = config.db_path(arch);
-        let files_path = config.files_path(arch);
         let package_dir = config.package_dir(&args.package_name);
 
         std::fs::create_dir_all(repo_dir.as_path()).unwrap_or_else(|_| {
@@ -362,8 +361,8 @@ async fn omakase_build(args: OmakaseBuildArgs) {
                 .expect("Unable to download files from S3");
         }
 
-        let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
-        let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
+        let mut db_repo = guzuta::Repository::new(config.db_path(arch), repo_signer);
+        let mut files_repo = guzuta::Repository::new(config.files_path(arch), repo_signer);
         db_repo.load().unwrap_or_else(|_| {
             panic!(
                 "Unable to load database repository from {}",
@@ -430,17 +429,14 @@ async fn omakase_remove(args: OmakaseRemoveArgs) {
     };
 
     for &arch in config.builds.keys() {
-        let db_path = config.db_path(arch);
-        let files_path = config.files_path(arch);
-
         if let Some(ref s3) = s3 {
             s3.download_repository(&config, arch)
                 .await
                 .expect("Unable to download files from S3");
         }
 
-        let mut db_repo = guzuta::Repository::new(db_path, repo_signer);
-        let mut files_repo = guzuta::Repository::new(files_path, repo_signer);
+        let mut db_repo = guzuta::Repository::new(config.db_path(arch), repo_signer);
+        let mut files_repo = guzuta::Repository::new(config.files_path(arch), repo_signer);
         db_repo.load().unwrap_or_else(|_| {
             panic!(
                 "Unable to load database repository from {}",
