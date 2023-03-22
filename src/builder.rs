@@ -89,7 +89,7 @@ impl<'a> ChrootHelper<'a> {
             .arg("makechrootpkg")
             .arg("-cur")
             .arg(current_dir.join(self.chroot_dir));
-        log::info!("{:?}", cmd);
+        tracing::info!("{:?}", cmd);
         let status = cmd.status().await?;
         if status.success() {
             Ok(())
@@ -143,10 +143,10 @@ impl<'a> Builder<'a> {
                 let symlink_package_path = package_dir.join(entry.file_name());
                 if symlink_package_path.read_link().is_ok() {
                     // Unlink symlink created by makechrootpkg
-                    log::info!("Unlink symlink {}", symlink_package_path.display());
+                    tracing::info!("Unlink symlink {}", symlink_package_path.display());
                     tokio::fs::remove_file(symlink_package_path).await?;
                 }
-                log::info!("Copy {} to {}", entry.path().display(), dest.display());
+                tracing::info!("Copy {} to {}", entry.path().display(), dest.display());
                 tokio::fs::copy(entry.path(), &dest)
                     .await
                     .with_context(|| {

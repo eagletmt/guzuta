@@ -16,11 +16,9 @@ aws-sdk-s3 = "0.24"
 base64 = "0.21"
 bytes = "1"
 clap = { version = "4", features = ["derive"] }
-env_logger = "0.10"
 flate2 = "1"
 futures = "0.3"
 gpgme = "0.11"
-log = "0.4"
 md-5 = "0.10"
 rust-lzma = "0.5"
 serde = { version = "1", features = ["derive"] }
@@ -29,4 +27,6 @@ sha2 = "0.10"
 tar = "0.4"
 tempdir = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "fs"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zstd = "0.12"

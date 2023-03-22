@@ -124,7 +124,7 @@ struct OmakaseRemoveArgs {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     use clap::Parser as _;
     let args = Args::parse();
