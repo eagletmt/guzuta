@@ -162,10 +162,7 @@ async fn run_subcommand(subcommand: Subcommand) -> Result<()> {
 
 async fn build(args: BuildArgs) -> Result<()> {
     let chroot = guzuta::ChrootHelper::new(&args.chroot_dir, args.arch);
-    let package_signer = args
-        .package_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
+    let package_signer = args.package_key.as_deref().map(guzuta::Signer::new);
     let srcdest = args
         .srcdest
         .as_deref()
@@ -174,13 +171,9 @@ async fn build(args: BuildArgs) -> Result<()> {
         .logdest
         .as_deref()
         .unwrap_or_else(|| std::path::Path::new("."));
-    let builder = guzuta::Builder::new(package_signer.as_ref(), srcdest, logdest);
+    let builder = guzuta::Builder::new(package_signer, srcdest, logdest);
 
-    let repo_signer = args
-        .repo_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
-    let repo_signer = repo_signer.as_ref();
+    let repo_signer = args.repo_key.as_deref().map(guzuta::Signer::new);
     let mut db_path = args.repo_dir.join(&args.repo_name).into_os_string();
     db_path.push(".db");
     let mut files_path = args.repo_dir.join(&args.repo_name).into_os_string();
@@ -202,7 +195,7 @@ async fn build(args: BuildArgs) -> Result<()> {
 
     let package_dir = &args.package_dir;
     let package_paths = builder
-        .build_package(package_dir, args.repo_dir, &chroot)
+        .build_package(package_dir, args.repo_dir, chroot)
         .await
         .with_context(|| format!("Unable to build package in {}", package_dir.display()))?;
 
@@ -230,14 +223,11 @@ async fn build(args: BuildArgs) -> Result<()> {
 }
 
 async fn repo_add(args: RepoAddArgs) {
-    let signer = args
-        .repo_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
+    let signer = args.repo_key.as_deref().map(guzuta::Signer::new);
     let package_path = args.package_path;
     let package = guzuta::Package::load(&package_path)
         .unwrap_or_else(|_| panic!("Unable to load package {}", package_path.display()));
-    let mut repository = guzuta::Repository::new(args.db_path, signer.as_ref());
+    let mut repository = guzuta::Repository::new(args.db_path, signer);
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -255,11 +245,8 @@ async fn repo_add(args: RepoAddArgs) {
 }
 
 async fn repo_remove(args: RepoRemoveArgs) {
-    let signer = args
-        .repo_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
-    let mut repository = guzuta::Repository::new(args.db_path, signer.as_ref());
+    let signer = args.repo_key.as_deref().map(guzuta::Signer::new);
+    let mut repository = guzuta::Repository::new(args.db_path, signer);
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -277,14 +264,11 @@ async fn repo_remove(args: RepoRemoveArgs) {
 }
 
 async fn files_add(args: FilesAddArgs) {
-    let signer = args
-        .repo_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
+    let signer = args.repo_key.as_deref().map(guzuta::Signer::new);
     let package_path = args.package_path;
     let package = guzuta::Package::load(&package_path)
         .unwrap_or_else(|_| panic!("Unable to load package {}", package_path.display()));
-    let mut repository = guzuta::Repository::new(args.files_path, signer.as_ref());
+    let mut repository = guzuta::Repository::new(args.files_path, signer);
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -302,11 +286,8 @@ async fn files_add(args: FilesAddArgs) {
 }
 
 async fn files_remove(args: FilesRemoveArgs) {
-    let signer = args
-        .repo_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
-    let mut repository = guzuta::Repository::new(args.files_path, signer.as_ref());
+    let signer = args.repo_key.as_deref().map(guzuta::Signer::new);
+    let mut repository = guzuta::Repository::new(args.files_path, signer);
 
     repository.load().unwrap_or_else(|_| {
         panic!(
@@ -327,16 +308,9 @@ async fn omakase_build(args: OmakaseBuildArgs) {
     let file = std::fs::File::open(".guzuta.yml").expect("Unable to open .guzuta.yml");
     let config =
         guzuta::omakase::Config::from_reader(file).expect("Unable to load YAML from .guzuta.yml");
-    let package_signer = config
-        .package_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
-    let repo_signer = config
-        .repo_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
-    let repo_signer = repo_signer.as_ref();
-    let builder = guzuta::Builder::new(package_signer.as_ref(), &config.srcdest, &config.logdest);
+    let package_signer = config.package_key.as_deref().map(guzuta::Signer::new);
+    let repo_signer = config.repo_key.as_deref().map(guzuta::Signer::new);
+    let builder = guzuta::Builder::new(package_signer, &config.srcdest, &config.logdest);
     let s3 = if let Some(ref s3_config) = config.s3 {
         Some(guzuta::omakase::S3::new(s3_config.clone()).await)
     } else {
@@ -377,7 +351,7 @@ async fn omakase_build(args: OmakaseBuildArgs) {
         });
 
         let package_paths = builder
-            .build_package(package_dir.as_path(), repo_dir, &chroot)
+            .build_package(package_dir.as_path(), repo_dir, chroot)
             .await
             .unwrap_or_else(|_| {
                 panic!(
@@ -417,11 +391,7 @@ async fn omakase_remove(args: OmakaseRemoveArgs) {
     let file = std::fs::File::open(".guzuta.yml").expect("Unable to open .guzuta.yml");
     let config =
         guzuta::omakase::Config::from_reader(file).expect("Unable to load YAML from .guzuta.yml");
-    let repo_signer = config
-        .repo_key
-        .as_ref()
-        .map(|key| guzuta::Signer::new(key.as_str()));
-    let repo_signer = repo_signer.as_ref();
+    let repo_signer = config.repo_key.as_deref().map(guzuta::Signer::new);
     let s3 = if let Some(ref s3_config) = config.s3 {
         Some(guzuta::omakase::S3::new(s3_config.clone()).await)
     } else {

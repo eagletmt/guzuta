@@ -41,15 +41,12 @@ pub struct PackageEntry {
 #[derive(Clone)]
 pub struct Repository<'a> {
     path: std::path::PathBuf,
-    signer: Option<&'a super::signer::Signer<'a>>,
+    signer: Option<super::signer::Signer<'a>>,
     entries: std::collections::HashMap<String, PackageEntry>,
 }
 
 impl<'a> Repository<'a> {
-    pub fn new(
-        path: std::path::PathBuf,
-        signer: Option<&'a super::signer::Signer<'a>>,
-    ) -> Repository {
+    pub fn new(path: std::path::PathBuf, signer: Option<super::signer::Signer<'a>>) -> Repository {
         Repository {
             path,
             signer,
@@ -211,7 +208,7 @@ impl<'a> Repository<'a> {
         let gz_writer = builder.into_inner()?;
         gz_writer.finish()?;
 
-        if let Some(signer) = self.signer {
+        if let Some(signer) = &self.signer {
             let mut sig_path = self.path.clone().into_os_string();
             sig_path.push(".sig");
             signer.sign(&tmp_path, sig_path).await?;

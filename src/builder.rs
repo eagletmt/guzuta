@@ -46,7 +46,7 @@ impl std::str::FromStr for Arch {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ChrootHelper<'a> {
     chroot_dir: &'a std::path::Path,
     #[allow(dead_code)]
@@ -101,14 +101,14 @@ impl<'a> ChrootHelper<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Builder<'a> {
-    signer: Option<&'a super::signer::Signer<'a>>,
+    signer: Option<super::signer::Signer<'a>>,
     srcdest: &'a std::path::Path,
     logdest: &'a std::path::Path,
 }
 
 impl<'a> Builder<'a> {
     pub fn new(
-        signer: Option<&'a super::signer::Signer<'a>>,
+        signer: Option<super::signer::Signer<'a>>,
         srcdest: &'a std::path::Path,
         logdest: &'a std::path::Path,
     ) -> Self {
@@ -123,7 +123,7 @@ impl<'a> Builder<'a> {
         &self,
         package_dir: P,
         repo_dir: Q,
-        chroot_helper: &ChrootHelper<'_>,
+        chroot_helper: ChrootHelper<'_>,
     ) -> Result<Vec<std::path::PathBuf>, anyhow::Error>
     where
         P: AsRef<std::path::Path>,
@@ -152,7 +152,7 @@ impl<'a> Builder<'a> {
                     .with_context(|| {
                         format!("Unable to copy file {:?} to {:?}", entry.path(), dest)
                     })?;
-                if let Some(signer) = self.signer {
+                if let Some(signer) = &self.signer {
                     let mut sig_dest = dest.clone().into_os_string();
                     sig_dest.push(".sig");
                     signer.sign(&dest, sig_dest).await?;
