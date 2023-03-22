@@ -24,7 +24,8 @@ impl Package {
         let pgpsig = if let Ok(mut f) = std::fs::File::open(sig_path) {
             let mut buf = vec![];
             f.read_to_end(&mut buf)?;
-            base64::encode(&buf)
+            use base64::Engine as _;
+            base64::engine::general_purpose::STANDARD.encode(&buf)
         } else {
             "".to_owned()
         };
