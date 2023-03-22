@@ -29,19 +29,19 @@ impl Config {
         serde_yaml::from_reader(reader)
     }
 
-    pub fn repo_dir(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
+    pub fn repo_dir(&self, arch: super::builder::Arch) -> std::path::PathBuf {
         std::path::PathBuf::from(&self.name)
             .join("os")
             .join(format!("{}", arch))
     }
 
-    pub fn db_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
+    pub fn db_path(&self, arch: super::builder::Arch) -> std::path::PathBuf {
         let mut path = self.repo_dir(arch).join(&self.name).into_os_string();
         path.push(".db");
         std::path::PathBuf::from(path)
     }
 
-    pub fn files_path(&self, arch: &super::builder::Arch) -> std::path::PathBuf {
+    pub fn files_path(&self, arch: super::builder::Arch) -> std::path::PathBuf {
         let mut path = self.repo_dir(arch).join(&self.name).into_os_string();
         path.push(".files");
         std::path::PathBuf::from(path)
@@ -73,7 +73,7 @@ impl S3 {
     pub async fn download_repository(
         &self,
         config: &Config,
-        arch: &super::builder::Arch,
+        arch: super::builder::Arch,
     ) -> Result<(), anyhow::Error> {
         let (r1, r2) = futures::join!(
             self.get(config.db_path(arch)),
@@ -86,7 +86,7 @@ impl S3 {
     pub async fn upload_repository<P>(
         &self,
         config: &Config,
-        arch: &super::builder::Arch,
+        arch: super::builder::Arch,
         package_paths: &[P],
     ) -> Result<(), anyhow::Error>
     where

@@ -342,8 +342,8 @@ async fn omakase_build(args: OmakaseBuildArgs) {
         None
     };
 
-    for (arch, build_config) in &config.builds {
-        let chroot = guzuta::ChrootHelper::new(&build_config.chroot, arch.clone());
+    for (&arch, build_config) in &config.builds {
+        let chroot = guzuta::ChrootHelper::new(&build_config.chroot, arch);
         let repo_dir = config.repo_dir(arch);
         let db_path = config.db_path(arch);
         let files_path = config.files_path(arch);
@@ -429,7 +429,7 @@ async fn omakase_remove(args: OmakaseRemoveArgs) {
         None
     };
 
-    for arch in config.builds.keys() {
+    for &arch in config.builds.keys() {
         let db_path = config.db_path(arch);
         let files_path = config.files_path(arch);
 

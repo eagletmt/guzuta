@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum Arch {
     #[serde(rename = "i686")]
