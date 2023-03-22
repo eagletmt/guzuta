@@ -1,4 +1,4 @@
-use crypto::digest::Digest;
+use md5::Digest as _;
 use std::io::Read;
 
 #[derive(Debug, Clone)]
@@ -29,8 +29,8 @@ impl Package {
         } else {
             "".to_owned()
         };
-        let mut md5 = crypto::md5::Md5::new();
-        let mut sha256 = crypto::sha2::Sha256::new();
+        let mut md5 = md5::Md5::new();
+        let mut sha256 = sha2::Sha256::new();
         let mut f = std::fs::File::open(path)?;
         loop {
             let mut buf = [0; 1024];
@@ -39,8 +39,8 @@ impl Package {
                     break;
                 }
                 len => {
-                    md5.input(&buf[..len]);
-                    sha256.input(&buf[..len]);
+                    md5.update(&buf[..len]);
+                    sha256.update(&buf[..len]);
                 }
             }
         }
@@ -53,8 +53,8 @@ impl Package {
                 .expect("Unable to find file_name from package path")
                 .to_os_string(),
             pgpsig,
-            md5sum: md5.result_str(),
-            sha256sum: sha256.result_str(),
+            md5sum: format!("{:x}", md5.finalize()),
+            sha256sum: format!("{:x}", sha256.finalize()),
             files,
         })
     }
