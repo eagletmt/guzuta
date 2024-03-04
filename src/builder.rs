@@ -130,7 +130,7 @@ impl<'a> Builder<'a> {
         Q: AsRef<std::path::Path>,
     {
         let package_dir = package_dir.as_ref();
-        let tempdir = tempdir::TempDir::new("guzuta-pkgdest")?;
+        let tempdir = tempfile::TempDir::with_prefix("guzuta-pkgdest")?;
         let pkgdest = tempdir.path();
         chroot_helper
             .makechrootpkg(package_dir, self.srcdest, pkgdest, self.logdest)

@@ -25,7 +25,7 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 sha2 = "0.10"
 tar = "0.4"
-tempdir = "0.3"
+tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "fs"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
