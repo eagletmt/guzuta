@@ -59,9 +59,10 @@ pub struct S3 {
 
 impl S3 {
     pub async fn new(config: S3Config) -> Self {
-        let shared_config = aws_config::load_from_env().await;
+        let shared_config =
+            aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
         let conf = aws_sdk_s3::config::Builder::from(&shared_config)
-            .region(Some(aws_sdk_s3::Region::new(config.region)))
+            .region(Some(aws_sdk_s3::config::Region::new(config.region)))
             .build();
         let client = aws_sdk_s3::Client::from_conf(conf);
         S3 {
@@ -148,7 +149,6 @@ impl S3 {
             .await
         {
             Ok(mut output) => {
-                use futures::StreamExt as _;
                 use tokio::io::AsyncWriteExt as _;
 
                 let file = tokio::fs::File::create(path).await?;
@@ -159,7 +159,7 @@ impl S3 {
                 writer.shutdown().await?;
                 Ok(())
             }
-            Err(aws_sdk_s3::types::SdkError::ServiceError(e)) if e.err().is_no_such_key() => Ok(()),
+            Err(aws_sdk_s3::error::SdkError::ServiceError(e)) if e.err().is_no_such_key() => Ok(()),
             Err(e) => Err(anyhow::Error::from(e)),
         }
     }
@@ -170,7 +170,7 @@ impl S3 {
     {
         let path = path.as_ref();
         let metadata = tokio::fs::metadata(path).await?;
-        let stream = aws_sdk_s3::types::ByteStream::from_path(path).await?;
+        let stream = aws_sdk_s3::primitives::ByteStream::from_path(path).await?;
         let request = self
             .client
             .put_object()
