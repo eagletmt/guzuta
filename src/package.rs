@@ -159,6 +159,7 @@ pub struct PkgInfo {
     pub backups: Vec<String>,
     pub provides: Vec<String>,
     pub replaces: Vec<String>,
+    pub xdata: String,
 }
 
 impl PkgInfo {
@@ -237,6 +238,7 @@ fn parse_pkginfo(body: &str) -> Result<PkgInfo, anyhow::Error> {
                 "provides" => info.provides.push(val.to_owned()),
                 "backup" => info.backups.push(val.to_owned()),
                 "replaces" => info.replaces.push(val.to_owned()),
+                "xdata" => info.xdata = val.to_owned(),
                 _ => return Err(anyhow::anyhow!("Unknown PKGINFO entry '{}': {}", key, line)),
             }
         } else {
