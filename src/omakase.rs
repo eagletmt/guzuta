@@ -60,7 +60,7 @@ pub struct S3 {
 impl S3 {
     pub async fn new(config: S3Config) -> Self {
         let shared_config =
-            aws_config::load_defaults(aws_config::BehaviorVersion::v2023_11_09()).await;
+            aws_config::load_defaults(aws_config::BehaviorVersion::v2024_03_28()).await;
         let conf = aws_sdk_s3::config::Builder::from(&shared_config)
             .region(Some(aws_sdk_s3::config::Region::new(config.region)))
             .build();
